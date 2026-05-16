@@ -1,0 +1,17 @@
+.env
+.env.*
+!.env.example
+*.secret
+*.key
+*.pem
+.secrets/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+*.pyc
+.DS_Store
+output/
+local_data/
+*.sqlite
+*.db
