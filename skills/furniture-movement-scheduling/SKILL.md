@@ -19,14 +19,22 @@ Use `pickups_deliveries` as the single scheduling table for:
 
 ## Required fields
 
+When Primary Partner/Operations Partner says an item is sold or has a deposit, capture scheduling details as they arrive. Missing buyer/contact/address/time details are warnings/follow-ups, not blockers for recording the deposit/status when the money/status facts are clear.
+
 Capture when available:
 
 - `movement_type`
 - `inventory_uid` and/or `inventory_group_id`
-- `contact_id` or counterparty name/contact
-- address/location
+- customer/counterparty name
+- customer phone/email/contact method
+- `contact_id` when known, otherwise counterparty name/contact
+- delivery/pickup address/location
+- storage unit / origin location
+- planned delivery/pickup date and target arrival/delivery time
 - scheduled start/end or time window
 - assigned person/driver/helper
+- payment summary: item price, delivery fee, total owed, deposit paid, balance owed, who received deposit, expected final method
+- special instructions: stairs, elevator, loading dock, gate code, carry distance, tools/blankets, etc.
 - `movement_status`: `planned`, `confirmed`, `completed`, `cancelled`, `rescheduled`
 - notes
 - `calendar_event_id` after creating a calendar event
@@ -36,11 +44,24 @@ Capture when available:
 For furniture-business workdays/scheduling with Operations Partner:
 
 - use Primary Partner's shared Lex-controlled calendar
-- invite `primary-partner@example.invalid`
-- invite Operations Partner at `ops-partner@example.invalid` and `ops-partner-alt@example.invalid`
-- preview event metadata before creation unless Primary Partner explicitly says to create
+- invite `primary@example.invalid`
+- invite Operations Partner at `ops@example.invalid` and `ops-alt@example.invalid`
+- preview event metadata before creation/update for now unless Primary Partner explicitly says to create. Primary Partner may later allow automation if calendar previews become a drag because the underlying delivery data was already confirmed.
 
-Calendar event creation/update should mirror the DB row and write back `calendar_event_id`.
+Calendar event details must include item name/ID, customer name/contact, address/location, Google Maps navigation link when address is available, storage/origin, assigned person/helper, special instructions, and payment summary (price, delivery fee, total owed, deposit paid/who received it, balance owed, expected final method if known).
+
+Delivery timing rule:
+
+- target delivery time = customer-agreed delivery/arrival time
+- default load time = 45 minutes
+- estimate drive time from storage/origin to destination
+- event start = target delivery time - drive time - 45 minutes
+- event end = target delivery time + 45 minutes
+- example: 11:00 delivery, 1h drive, 45m load -> event 9:15-11:45
+
+For any day with deliveries/pickups, create/update one all-day summary invite for Primary Partner and Operations Partner with item name, time, and contact for each activity.
+
+Calendar event creation/update should mirror the DB row and write back `calendar_event_id`. Any delivery/pickup update should update both DB row and related calendar invite(s).
 
 ## Pending sale integration
 

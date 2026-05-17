@@ -9,9 +9,12 @@ This project demonstrates how messy real-world business activity — chat messag
 - Inventory lifecycle tracking with status history
 - Cash-flow records for purchases, deposits, split payments, final payments, refunds, labor, storage, and expenses
 - Payment-method tracking at the individual money-movement level
+- Receipt/image audit trail for expense OCR, file paths, and extracted transaction details
+- Parent/child cost-basis handling for split sets and relisted remainder pieces
+- Sold flag/status alignment guardrails
 - Unified pickup/delivery scheduling model suitable for calendar automation
 - Contact and contractor management
-- Listing and price-history tracking
+- Listing and price-history tracking, including relist-needed workflow hooks
 - Guardrail views that catch risky or incomplete DB writes
 - Agent skills that encode repeatable business workflows
 

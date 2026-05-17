@@ -27,7 +27,7 @@ Role values:
 
 ## Import source
 
-Google Sheet: `Furniture Ops Workbook` -> `Contact List`.
+Google Sheet: `Furniture Biz Operations 2026` -> `Contact List`.
 
 Current sheet seed import added contacts from the tab plus Primary Partner and Operations Partner.
 
@@ -35,9 +35,14 @@ Current sheet seed import added contacts from the tab plus Primary Partner and O
 
 Prefer matching by:
 
-- lower(display_name)
 - phone when present
 - email when present
+
+Policy:
+
+- Exact phone and/or exact email match = likely same contact; preview if merging would overwrite fields/notes/ratings.
+- High-probability fuzzy name match without phone/email = flag for Primary Partner/Operations Partner decision; do not merge automatically.
+- Name-only matches are not enough for automatic dedupe.
 
 Do not overwrite existing notes/ratings without preview.
 
