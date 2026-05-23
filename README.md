@@ -2,19 +2,23 @@
 
 [![CI Smoke](https://github.com/Matthew-T-Fergusson/furniture-ops-ai-poc/actions/workflows/ci-smoke.yml/badge.svg)](https://github.com/Matthew-T-Fergusson/furniture-ops-ai-poc/actions/workflows/ci-smoke.yml)
 
-**Repository short description:** AI-assisted operations system for a live furniture resale business, replacing spreadsheet tracking with Postgres-backed workflows for inventory, cash flow, logistics, receipts, listings, and reporting.
+**Repository short description:** A live AI-assisted operations system for a furniture resale business, built to convert spreadsheet-based tracking into structured, auditable, database-backed workflows.
 
-This repository documents an AI-assisted operations system for a live furniture resale business.
+This repository documents a live AI-assisted operations system for a furniture resale business.
 
 The system began as spreadsheet-based tracking and was converted into a Postgres-backed operational database and workflow layer. It is currently used to support real business activity while being expanded into a fuller operating system for inventory, sourcing, purchases, sales, receipts, pickups, deliveries, listing history, cash flow, and reporting.
+
+Rather than using AI only for ad hoc tasks, this project uses an AI agent as an operational assistant working against a persistent database, documented workflows, and guardrails.
 
 The goal is to turn messy, high-context business operations into structured, auditable, AI-accessible workflows.
 
 ## Current Operating Status
 
-This is a **sanitized public portfolio version** of a live internal operations system.
+This is a **sanitized public portfolio version** of the live system.
 
 The private operating system is already used to support business activity. This public repository excludes sensitive records and focuses on the architecture, data model, workflows, guardrails, analytics layer, recovery pattern, and development path.
+
+Private customer records, receipts, financial details, credentials, and internal operating data are intentionally excluded.
 
 Current state:
 
@@ -66,7 +70,7 @@ The system supports, or is being built to support:
 
 ## AI-Assisted Workflow Layer
 
-The system is designed for agent-assisted operations, where an AI agent helps translate messy business inputs into structured records.
+The system is designed for agent-assisted operations, where an AI agent works against a persistent database, documented workflows, and guardrails instead of only performing one-off ad hoc tasks.
 
 The agent layer is intended to:
 
@@ -161,9 +165,10 @@ Reason: it keeps the existing search/context value while removing the outdated i
 
 Other reasonable options:
 
+- `furniture-ops-system`
 - `ai-assisted-furniture-ops`
-- `furniture-operations-system`
-- `furniture-resale-ops-db`
+- `furniture-operations-platform`
+- `resale-ops-ai-system`
 
 ## Before / After Positioning
 
@@ -173,7 +178,7 @@ Before:
 
 After:
 
-> A sanitized public portfolio version of a live internal operations system for a furniture resale business, documenting how spreadsheet-based tracking is being converted into a Postgres-backed source of truth with structured workflows, guardrails, analytics, and an AI-assisted workflow layer.
+> A live AI-assisted operations system for a furniture resale business, built to convert spreadsheet-based tracking into structured, auditable, database-backed workflows. This repository is the sanitized public portfolio version of that live system.
 
 ## Privacy Note
 
