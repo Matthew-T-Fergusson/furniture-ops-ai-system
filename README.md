@@ -1,6 +1,6 @@
 # AI-Assisted Furniture Operations System
 
-[![CI Smoke](https://github.com/Matthew-T-Fergusson/furniture-ops-ai-poc/actions/workflows/ci-smoke.yml/badge.svg)](https://github.com/Matthew-T-Fergusson/furniture-ops-ai-poc/actions/workflows/ci-smoke.yml)
+[![CI Smoke](https://github.com/Matthew-T-Fergusson/furniture-ops-ai-system/actions/workflows/ci-smoke.yml/badge.svg)](https://github.com/Matthew-T-Fergusson/furniture-ops-ai-system/actions/workflows/ci-smoke.yml)
 
 **Repository short description:** A live AI-assisted operations system for a furniture resale business, built to convert spreadsheet-based tracking into structured, auditable, database-backed workflows.
 
@@ -153,17 +153,17 @@ The work demonstrates:
 
 The strongest theme is converting high-context business activity into structured, auditable, AI-accessible operational systems.
 
-## Repository Rename Recommendation
+## Repository Name
 
-Recommended future repository name:
+Current repository name:
 
 ```text
 furniture-ops-ai-system
 ```
 
-Reason: it keeps the existing search/context value while removing the outdated implication that this is only an early experiment.
+Reason: the name reflects the current positioning as an AI-assisted operations system rather than an early experiment.
 
-Other reasonable options:
+Alternative names considered:
 
 - `furniture-ops-system`
 - `ai-assisted-furniture-ops`
