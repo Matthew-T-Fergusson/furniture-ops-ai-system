@@ -41,7 +41,7 @@ Every asking-price change gets a new `listing_price_history` row with:
 
 If an active listing expires or is found inactive when an item needs to go back for sale, automatically create a Jira ticket to relist/refresh the item and link/cross-reference the inventory/listing record. Do this even if the item is listed on other platforms; Primary Partner wants the inventory/listing status to surface a relist action when any marketplace listing needs attention.
 
-Relist status convention: if the DB enum does not support a dedicated `relist_needed` inventory status yet, set/keep inventory on `hold` and record relist need in `listing_status`, notes, and the Jira ticket.
+Relist status convention: if the DB enum does not support a dedicated `relist_needed` inventory status yet, set/keep inventory on `hold` and record relist need in `listings.status`, `listings.notes`, inventory notes, and the Jira ticket. Do not use legacy `inventory.listing_status` for new workflow state.
 
 If buyer backs out after deposit:
 

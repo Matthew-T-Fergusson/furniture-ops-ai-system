@@ -15,3 +15,11 @@ output/
 local_data/
 *.sqlite
 *.db
+
+# Private backup artifacts and restore scratch data
+backups/
+*.zip.enc
+*.zip.enc.sha256
+*.dump
+*.sql.gz
+restore_tmp/

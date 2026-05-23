@@ -1,0 +1,31 @@
+name: CI Smoke
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  furniture-db-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: furniture_ops_poc
+          POSTGRES_USER: furniture
+          POSTGRES_PASSWORD: change_me
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U furniture -d furniture_ops_poc"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Postgres client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Run schema/guardrail smoke test
+        env:
+          DATABASE_URL: postgresql://furniture:change_me@localhost:5432/furniture_ops_poc
+        run: make ci-smoke
