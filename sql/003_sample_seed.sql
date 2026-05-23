@@ -1,4 +1,4 @@
--- Synthetic sample data for Furniture Ops AI POC
+-- Synthetic sample data for the AI-assisted furniture operations system
 
 INSERT INTO contacts (display_name, contact_type, phone, email, notes) VALUES
   ('Alex Partner', 'partner', NULL, 'alex@example.invalid', 'Synthetic partner contact'),

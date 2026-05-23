@@ -1,6 +1,6 @@
 # Backup + Recovery Model
 
-This public POC documents the disaster-recovery pattern without publishing private backup files, secrets, Drive folder IDs, account IDs, or real operational data.
+This public portfolio version documents the disaster-recovery pattern without publishing private backup files, secrets, Drive folder IDs, account IDs, or real operational data.
 
 ## Design goal
 

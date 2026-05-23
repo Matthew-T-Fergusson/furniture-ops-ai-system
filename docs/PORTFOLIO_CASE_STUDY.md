@@ -6,7 +6,7 @@ A small resale business generated operational data across chat, spreadsheets, re
 
 ## Approach
 
-The POC creates a structured operating layer in Postgres and uses AI-agent skills to translate business events into normalized records.
+The system creates a structured operating layer in Postgres and uses AI-agent skills to translate business events into normalized records.
 
 ## Highlights
 

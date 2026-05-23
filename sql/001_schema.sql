@@ -1,4 +1,4 @@
--- Furniture Ops AI POC schema
+-- AI-assisted furniture operations system schema
 
 CREATE TABLE IF NOT EXISTS inventory_groups (
   inventory_group_id text PRIMARY KEY,

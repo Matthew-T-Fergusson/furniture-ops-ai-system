@@ -1,6 +1,6 @@
 # Analytics + KPI Layer
 
-This POC includes a synthetic dashboard-ready analytics layer in `sql/004_analytics_views.sql`.
+This public portfolio version includes a synthetic dashboard-ready analytics layer in `sql/004_analytics_views.sql`.
 
 ## Why materialized views?
 
@@ -39,7 +39,7 @@ Item-level and weekly/monthly realized margin:
 - gross margin percentage
 - sale date/month
 
-The POC uses simple synthetic `cash_flows` categories. A production deployment can enrich this with explicit operating/tax classifications.
+The public reference dataset uses simple synthetic `cash_flows` categories. A private/live deployment can enrich this with explicit operating/tax classifications.
 
 ### `analytics_listing_performance_mv`
 
@@ -106,7 +106,7 @@ One dashboard table for weekly/monthly operating health:
 
 ## Refresh policy
 
-In this POC, `make ci-smoke` rebuilds the schema and analytics views from scratch. In a production deployment, refresh materialized views after writer/import jobs that change source tables.
+In this public reference version, `make ci-smoke` rebuilds the schema and analytics views from scratch. In a private/live deployment, refresh materialized views after writer/import jobs that change source tables.
 
 Example production-style refresh:
 
@@ -124,4 +124,4 @@ REFRESH MATERIALIZED VIEW analytics_operating_kpis_period_mv;
 
 ## Privacy and security
 
-Analytics views must not expose private operational secrets such as real addresses, gate codes, lockbox codes, phone numbers, OAuth data, receipt images, or partner-only notes. Keep private data in private deployments; keep this public POC synthetic.
+Analytics views must not expose private operational secrets such as real addresses, gate codes, lockbox codes, phone numbers, OAuth data, receipt images, or partner-only notes. Keep private data in private deployments; keep this public portfolio version synthetic.

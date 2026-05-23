@@ -1,6 +1,6 @@
 # Architecture
 
-The POC uses Postgres as the source of truth for operations and agent workflows as the structured intake layer.
+The system uses Postgres as the source of truth for operations and agent workflows as the structured intake layer.
 
 ## Core components
 

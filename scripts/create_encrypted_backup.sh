@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Create an encrypted Postgres backup package.
 #
-# This script is a public-safe reference implementation for the POC. It shows the
+# This script is a public-safe reference implementation. It shows the
 # structure used in production without embedding private database names, Drive
 # folder IDs, passwords, or real data.
 #

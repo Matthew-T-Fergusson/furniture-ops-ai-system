@@ -1,6 +1,6 @@
 -- 004_analytics_views.sql
 --
--- Synthetic analytics layer for the Furniture Ops AI POC.
+-- Synthetic analytics layer for the AI-assisted furniture operations system.
 --
 -- Background / design intent:
 -- - The operating DB keeps normalized source-of-truth tables (`inventory`,
@@ -60,7 +60,7 @@ COMMENT ON MATERIALIZED VIEW analytics_inventory_pipeline_mv IS
   'Dashboard-ready grouped current inventory pipeline. Sum item_count for item-level totals.';
 
 -- Item-level realized margin. Private/live variants can add more taxonomy fields,
--- but this POC keeps the calculation readable from generic cash-flow categories.
+-- but this public reference version keeps the calculation readable from generic cash-flow categories.
 CREATE MATERIALIZED VIEW analytics_sales_margin_mv AS
 WITH revenue AS (
   SELECT

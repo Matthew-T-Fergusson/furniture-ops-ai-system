@@ -1,4 +1,4 @@
--- Guardrail regression tests for Furniture Ops AI POC.
+-- Guardrail regression tests for the AI-assisted furniture operations system.
 -- Synthetic-only fixtures. Runs inside one transaction and rolls back.
 
 \set ON_ERROR_STOP on
