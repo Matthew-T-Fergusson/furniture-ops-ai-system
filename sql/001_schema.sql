@@ -100,6 +100,22 @@ CREATE TABLE IF NOT EXISTS contact_roles (
   CONSTRAINT contact_roles_role_chk CHECK (role IN ('buyer','seller','source','contractor','delivery_helper','partner','payer','payee','marketplace_lead','vendor','other'))
 );
 
+CREATE TABLE IF NOT EXISTS tax_categories (
+  tax_category_code text PRIMARY KEY,
+  display_name text NOT NULL,
+  category_kind text NOT NULL,
+  schedule_c_hint text,
+  default_deductible boolean NOT NULL DEFAULT false,
+  public_notes text,
+  active boolean NOT NULL DEFAULT true,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT tax_categories_kind_chk CHECK (category_kind IN ('expense','revenue','contra_revenue','non_tax','review'))
+);
+
+COMMENT ON TABLE tax_categories IS 'Generic public-safe tax/reporting taxonomy for reusable resale/operations models. Not tax advice.';
+COMMENT ON COLUMN tax_categories.schedule_c_hint IS 'Broad Schedule C-style reporting hint for review with a tax professional; not filing advice.';
+
 CREATE TABLE IF NOT EXISTS cash_flows (
   cf_record_id text PRIMARY KEY,
   inventory_uid text REFERENCES inventory(inventory_uid),
@@ -114,6 +130,9 @@ CREATE TABLE IF NOT EXISTS cash_flows (
   amount_raw text,
   currency text DEFAULT 'USD',
   category text,
+  tax_category_code text REFERENCES tax_categories(tax_category_code),
+  deductible_override boolean,
+  tax_treatment_notes text,
   purpose text,
   file_path text,
   file_link text,
@@ -135,6 +154,10 @@ COMMENT ON COLUMN cash_flows.file_path IS 'Saved source receipt/image/document p
 COMMENT ON COLUMN cash_flows.file_link IS 'Link/reference to saved source receipt/image/document.';
 COMMENT ON COLUMN cash_flows.notes IS 'OCR/extracted receipt or transaction details when available.';
 COMMENT ON COLUMN cash_flows.partner_balance_effect IS 'Partner accounting effect classification, e.g. expense_paid, sale_proceeds_credit, labor_payment, no_cash_movement, zero_sale_or_disposition, other.';
+
+COMMENT ON COLUMN cash_flows.tax_category_code IS 'Normalized tax/reporting bucket. Operational category remains in cash_flows.category; use unknown_needs_review when ambiguous.';
+COMMENT ON COLUMN cash_flows.deductible_override IS 'Optional row-level override when deductible treatment differs from the taxonomy default. Keep null unless explicitly reviewed.';
+COMMENT ON COLUMN cash_flows.tax_treatment_notes IS 'Short public-safe explanation of tax/reporting classification or why review is needed.';
 
 CREATE TABLE IF NOT EXISTS listings (
   listing_id bigserial PRIMARY KEY,
@@ -282,5 +305,6 @@ CREATE INDEX IF NOT EXISTS idx_cash_flows_txn_date ON cash_flows(txn_date);
 CREATE INDEX IF NOT EXISTS idx_cash_flows_paid_by ON cash_flows(paid_by);
 CREATE INDEX IF NOT EXISTS idx_cash_flows_payment_method ON cash_flows(payment_method);
 CREATE INDEX IF NOT EXISTS idx_cash_flows_payment_stage ON cash_flows(payment_stage);
+CREATE INDEX IF NOT EXISTS idx_cash_flows_tax_category ON cash_flows(tax_category_code);
 CREATE INDEX IF NOT EXISTS idx_listings_inventory_uid ON listings(inventory_uid);
 CREATE INDEX IF NOT EXISTS idx_pickups_deliveries_schedule ON pickups_deliveries(scheduled_start, scheduled_end);

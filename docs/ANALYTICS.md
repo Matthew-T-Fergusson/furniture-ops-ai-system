@@ -89,6 +89,21 @@ Item-level cycle-time measures:
 - pending → sold
 - acquired → sold
 
+### `analytics_cash_flow_tax_category_period_mv`
+
+Weekly/monthly tax-aware cash-flow reporting:
+
+- tax/reporting category
+- category kind: expense, revenue, contra-revenue, non-tax, or review
+- Schedule C-style hint
+- gross amount
+- expense amount
+- payment/revenue amount
+- deductible expense amount
+- needs-review count
+
+This view supports dashboards that combine operational performance with tax preparation implications. It is a reporting aid, not tax advice.
+
 ### `analytics_operating_kpis_period_mv`
 
 One dashboard table for weekly/monthly operating health:
@@ -115,6 +130,7 @@ REFRESH MATERIALIZED VIEW analytics_inventory_pipeline_mv;
 REFRESH MATERIALIZED VIEW analytics_sales_margin_mv;
 REFRESH MATERIALIZED VIEW analytics_sales_margin_period_mv;
 REFRESH MATERIALIZED VIEW analytics_listing_performance_mv;
+REFRESH MATERIALIZED VIEW analytics_cash_flow_tax_category_period_mv;
 REFRESH MATERIALIZED VIEW analytics_current_status_aging_mv;
 REFRESH MATERIALIZED VIEW analytics_status_aging_summary_mv;
 REFRESH MATERIALIZED VIEW analytics_status_transitions_period_mv;

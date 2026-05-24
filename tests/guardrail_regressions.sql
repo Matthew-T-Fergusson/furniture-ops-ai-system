@@ -71,7 +71,21 @@ INSERT INTO inventory (inventory_uid, inventory_group_id, item_id, cl_url, item_
 VALUES ('T-SOLD-FLAG-1', 'T-SOLD-FLAG-G', 'CL-T-SOLD-FLAG-1', 'https://example.invalid/t-sold-flag-1', 'Synthetic sold/status mismatch', 65.00, 65.00, 'listed_active', true, 'direct_or_imported');
 SELECT assert_guardrail('inventory', 'T-SOLD-FLAG-1', 'sold_flag_status_mismatch', 'error');
 
--- 7) Agent audit trail: synthetic action log rows must round-trip through
+-- 7) Tax/reporting taxonomy: missing or review-needed classifications should
+-- warn rather than block because business tax treatment can have gray areas.
+INSERT INTO cash_flows (cf_record_id, txn_type, txn_date, vendor_or_description, amount, category, tax_category_code, purpose)
+VALUES ('T-TAX-EXPENSE-1', 'Expense', current_date - interval '45 days', 'Synthetic uncategorized supplies', 22.00, 'Supplies', 'unknown_needs_review', 'Synthetic tax review test');
+SELECT assert_guardrail('cash_flow', 'T-TAX-EXPENSE-1', 'expense_missing_tax_category', 'warning');
+
+INSERT INTO cash_flows (cf_record_id, txn_type, txn_date, vendor_or_description, amount, category, purpose)
+VALUES ('T-TAX-REVENUE-1', 'Payment', current_date, 'Synthetic sale missing revenue classification', 99.00, 'Sale', 'Synthetic revenue review test');
+SELECT assert_guardrail('cash_flow', 'T-TAX-REVENUE-1', 'revenue_missing_tax_category', 'warning');
+
+INSERT INTO cash_flows (cf_record_id, txn_type, txn_date, vendor_or_description, amount, category, tax_category_code, purpose)
+VALUES ('T-TAX-MISMATCH-1', 'Payment', current_date, 'Synthetic sale with expense category', 88.00, 'Sale', 'inventory_cogs', 'Synthetic mismatch test');
+SELECT assert_guardrail('cash_flow', 'T-TAX-MISMATCH-1', 'tax_category_kind_mismatch', 'warning');
+
+-- 8) Agent audit trail: synthetic action log rows must round-trip through
 -- the recent view with JSON guardrail snapshots and correction feedback.
 INSERT INTO agent_action_log (
   skill_name,

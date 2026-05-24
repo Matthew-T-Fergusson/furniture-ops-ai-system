@@ -41,6 +41,8 @@ For each CSV receipt row, create/update one `cash_flows` row:
 - `amount` / `amount_raw` = amount
 - `currency` = receipt currency, usually `USD`
 - `category` = receipt category
+- `tax_category_code` = normalized reporting bucket such as `inventory_cogs`, `labor_contract`, `storage`, `vehicle_fuel`, `supplies`, `marketplace_fees`, `professional_services`, `software`, `other_expense`, or `unknown_needs_review`
+- `tax_treatment_notes` = short reason for the category or why review is needed
 - `purpose` = receipt purpose
 - `file_path` / `file_link` = receipt source image path/link
 - `notes` = same OCR/extracted receipt details used in CSV, including card tail/time/gallons/item lines when visible/useful
@@ -49,6 +51,8 @@ For each CSV receipt row, create/update one `cash_flows` row:
 - `payment_stage` = `other` unless a more specific allowed value applies (`storage`, `labor`, `inventory_purchase`, etc.)
 - `partner_balance_effect` = `expense_paid` for normal business expenses; use `labor_payment`, `no_cash_movement`, or other explicit values only when appropriate
 - `source_system` = `expense-receipt-capture`
+
+Tax/reporting categorization is a review aid, not tax advice. If the category is ambiguous, use `unknown_needs_review`; missing or review-needed tax category is a warning, not a blocker.
 
 Before/after DB write, run `select * from furniture_db_guardrail_summary;`. Existing unrelated warnings do not block the receipt insert.
 

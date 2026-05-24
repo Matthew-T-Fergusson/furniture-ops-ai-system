@@ -193,7 +193,38 @@ SELECT
   'sale_payment_missing_paid_to', 'warning',
   'Sale/payment cash-flow records should record who receives partner/accounting credit.'
 FROM cash_flows cf
-WHERE cf.txn_type='Payment' AND cf.category='Sale' AND cf.paid_to IS NULL;
+WHERE cf.txn_type='Payment' AND cf.category='Sale' AND cf.paid_to IS NULL
+
+UNION ALL
+SELECT
+  'cash_flow', cf.cf_record_id, cf.inventory_group_id,
+  'expense_missing_tax_category', 'warning',
+  'Expense cash-flow rows older than 30 days should have tax_category_code for tax-ready reporting; use unknown_needs_review when ambiguous.'
+FROM cash_flows cf
+WHERE cf.txn_type = 'Expense'
+  AND coalesce(cf.txn_date, current_date) <= current_date - interval '30 days'
+  AND (cf.tax_category_code IS NULL OR cf.tax_category_code = 'unknown_needs_review')
+
+UNION ALL
+SELECT
+  'cash_flow', cf.cf_record_id, cf.inventory_group_id,
+  'revenue_missing_tax_category', 'warning',
+  'Revenue/payment cash-flow rows should have a revenue tax_category_code so dashboarding can distinguish sales, delivery revenue, forfeited deposits, and review items.'
+FROM cash_flows cf
+WHERE cf.txn_type = 'Payment'
+  AND (cf.category IN ('Sale','Delivery Revenue') OR coalesce(cf.partner_balance_effect,'') = 'sale_proceeds_credit')
+  AND (cf.tax_category_code IS NULL OR cf.tax_category_code = 'unknown_needs_review')
+
+UNION ALL
+SELECT
+  'cash_flow', cf.cf_record_id, cf.inventory_group_id,
+  'tax_category_kind_mismatch', 'warning',
+  'Expense rows should use expense/review/non_tax tax categories and payment revenue rows should use revenue/contra_revenue/review categories.'
+FROM cash_flows cf
+JOIN tax_categories tc ON tc.tax_category_code = cf.tax_category_code
+WHERE (cf.txn_type = 'Expense' AND tc.category_kind NOT IN ('expense','review','non_tax'))
+   OR (cf.txn_type = 'Payment' AND cf.category IN ('Sale','Delivery Revenue') AND tc.category_kind NOT IN ('revenue','contra_revenue','review'));
+
 
 CREATE OR REPLACE VIEW furniture_db_guardrail_summary AS
 SELECT anomaly_type, severity, count(*) AS anomaly_count

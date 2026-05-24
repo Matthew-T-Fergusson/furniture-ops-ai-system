@@ -59,6 +59,7 @@ The system supports, or is being built to support:
 - Inventory lifecycle tracking with status history
 - Parent/child cost-basis handling for sets, bundles, split listings, and remainder pieces
 - Cash-flow records for purchases, deposits, split payments, final payments, refunds, labor, storage, and expenses
+- Tax/reporting category taxonomy for reusable resale-business expense and revenue review
 - Payment-method tracking at the individual money-movement level
 - Receipt/image audit trail concepts for expense capture, file paths, OCR, and extracted transaction details
 - Contact, buyer, seller, contractor, and partner role modeling
@@ -96,6 +97,7 @@ Core documentation:
 - [`docs/WORKFLOWS.md`](docs/WORKFLOWS.md)
 - [`docs/GUARDRAILS.md`](docs/GUARDRAILS.md)
 - [`docs/AGENT_ACTION_LOG.md`](docs/AGENT_ACTION_LOG.md)
+- [`docs/TAXONOMY.md`](docs/TAXONOMY.md)
 - [`docs/ANALYTICS.md`](docs/ANALYTICS.md)
 - [`docs/BACKUP_RECOVERY.md`](docs/BACKUP_RECOVERY.md)
 - [`docs/PORTFOLIO_CASE_STUDY.md`](docs/PORTFOLIO_CASE_STUDY.md)
@@ -152,6 +154,7 @@ The work demonstrates:
 - audit-trail structure for AI-assisted actions, previews, failures, and human corrections
 - regression tests for operational data-quality rules
 - analytics views shaped around operating decisions rather than abstract metrics
+- reusable cash-flow taxonomy for operational and tax-aware dashboarding
 - privacy-conscious public documentation of a live internal system
 - a development path toward auditable AI-assisted workflows
 

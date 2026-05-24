@@ -14,6 +14,7 @@
 -- - All data here is synthetic/public-safe. Do not add real customer, address,
 --   receipt, storage-code, or partner-secret values to this repo.
 
+DROP MATERIALIZED VIEW IF EXISTS analytics_cash_flow_tax_category_period_mv CASCADE;
 DROP MATERIALIZED VIEW IF EXISTS analytics_operating_kpis_period_mv CASCADE;
 DROP MATERIALIZED VIEW IF EXISTS analytics_status_cycle_time_mv CASCADE;
 DROP MATERIALIZED VIEW IF EXISTS analytics_status_transitions_period_mv CASCADE;
@@ -373,3 +374,48 @@ COMMENT ON MATERIALIZED VIEW analytics_operating_kpis_period_mv IS
 CREATE INDEX IF NOT EXISTS idx_analytics_inventory_pipeline_status ON analytics_inventory_pipeline_mv(inventory_status, category);
 CREATE INDEX IF NOT EXISTS idx_analytics_status_aging_summary_status ON analytics_status_aging_summary_mv(inventory_status, status_age_bucket, stale_status_flag);
 CREATE INDEX IF NOT EXISTS idx_analytics_operating_kpis_period ON analytics_operating_kpis_period_mv(period_grain, period_start);
+
+-- Tax/category reporting view for operational dashboards.
+-- This keeps tax/reporting buckets separate from operational `cash_flows.category`
+-- so a resale business can analyze deductible expenses, revenue classes, and
+-- review-needed rows without losing source transaction semantics.
+CREATE MATERIALIZED VIEW analytics_cash_flow_tax_category_period_mv AS
+SELECT
+  grain.period_grain,
+  grain.period_start,
+  coalesce(cf.tax_category_code, 'uncategorized') AS tax_category_code,
+  coalesce(tc.display_name, 'Uncategorized') AS tax_category_name,
+  coalesce(tc.category_kind, 'review') AS category_kind,
+  coalesce(tc.schedule_c_hint, 'Needs review') AS schedule_c_hint,
+  count(*)::integer AS cash_flow_count,
+  sum(coalesce(cf.amount,0))::numeric(12,2) AS gross_amount,
+  sum(coalesce(cf.amount,0)) FILTER (WHERE cf.txn_type='Expense')::numeric(12,2) AS expense_amount,
+  sum(coalesce(cf.amount,0)) FILTER (WHERE cf.txn_type='Payment')::numeric(12,2) AS payment_amount,
+  sum(coalesce(cf.amount,0)) FILTER (
+    WHERE cf.txn_type='Expense'
+      AND coalesce(cf.deductible_override, tc.default_deductible, false)
+  )::numeric(12,2) AS deductible_expense_amount,
+  count(*) FILTER (WHERE cf.tax_category_code IS NULL OR cf.tax_category_code='unknown_needs_review')::integer AS needs_review_count,
+  now() AS refreshed_at
+FROM cash_flows cf
+LEFT JOIN tax_categories tc ON tc.tax_category_code = cf.tax_category_code
+CROSS JOIN LATERAL (
+  VALUES
+    ('week'::text, date_trunc('week', cf.txn_date)::date),
+    ('month'::text, date_trunc('month', cf.txn_date)::date)
+) AS grain(period_grain, period_start)
+WHERE cf.txn_date IS NOT NULL
+GROUP BY
+  grain.period_grain,
+  grain.period_start,
+  coalesce(cf.tax_category_code, 'uncategorized'),
+  coalesce(tc.display_name, 'Uncategorized'),
+  coalesce(tc.category_kind, 'review'),
+  coalesce(tc.schedule_c_hint, 'Needs review');
+
+COMMENT ON MATERIALIZED VIEW analytics_cash_flow_tax_category_period_mv IS
+  'Weekly/monthly cash-flow tax/reporting category view for operational and tax-aware dashboards. Not tax advice.';
+
+CREATE INDEX IF NOT EXISTS idx_analytics_cash_flow_tax_category_period
+  ON analytics_cash_flow_tax_category_period_mv(period_grain, period_start, tax_category_code);
+

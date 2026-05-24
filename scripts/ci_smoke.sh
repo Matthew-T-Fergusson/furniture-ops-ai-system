@@ -77,4 +77,33 @@ if [[ "${blocked_action_count}" == "0" ]]; then
   exit 1
 fi
 
+# Tax/category reporting regression: both expense and revenue/payment rows should
+# carry normalized tax/reporting categories, and the dashboard view should expose
+# deductible expense totals plus revenue category totals.
+tax_category_count="$(run_psql -Atc "SELECT count(*) FROM tax_categories;")"
+if (( tax_category_count < 10 )); then
+  echo "CI smoke failed: expected reusable tax category taxonomy, found ${tax_category_count} rows" >&2
+  exit 1
+fi
+cashflow_uncategorized_count="$(run_psql -Atc "SELECT count(*) FROM cash_flows WHERE tax_category_code IS NULL;")"
+if [[ "${cashflow_uncategorized_count}" != "0" ]]; then
+  echo "CI smoke failed: synthetic cash_flows include ${cashflow_uncategorized_count} uncategorized tax rows" >&2
+  exit 1
+fi
+tax_view_count="$(run_psql -Atc "SELECT count(*) FROM analytics_cash_flow_tax_category_period_mv;")"
+if [[ "${tax_view_count}" == "0" ]]; then
+  echo "CI smoke failed: tax category analytics view produced zero rows" >&2
+  exit 1
+fi
+
+# Warning-only review semantics: ambiguous tax categories should surface as
+# warnings, not blockers, because classification has gray areas.
+run_psql -c "INSERT INTO cash_flows (cf_record_id, txn_type, txn_date, vendor_or_description, amount, category, tax_category_code) VALUES ('CI-TAX-REVIEW', 'Expense', current_date - interval '45 days', 'Synthetic review expense', 12.34, 'Supplies', 'unknown_needs_review');" >/dev/null
+review_warning_count="$(run_psql -Atc "SELECT count(*) FROM furniture_db_guardrail_anomalies WHERE entity_type='cash_flow' AND entity_id='CI-TAX-REVIEW' AND anomaly_type='expense_missing_tax_category' AND severity='warning';")"
+if [[ "${review_warning_count}" != "1" ]]; then
+  echo "CI smoke failed: unknown tax category did not surface as a warning" >&2
+  exit 1
+fi
+run_psql -c "DELETE FROM cash_flows WHERE cf_record_id='CI-TAX-REVIEW';" >/dev/null
+
 echo "ci-smoke: ok"

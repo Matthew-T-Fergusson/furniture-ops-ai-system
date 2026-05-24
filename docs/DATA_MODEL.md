@@ -9,6 +9,7 @@
 - Realized revenue is represented by `cash_flows`, not by expected sale prices.
 - One cash-flow row equals one actual money movement.
 - Payment method is recorded at the cash-flow row level because one sale can have multiple payment methods.
+- Operational `cash_flows.category` is separate from normalized `tax_category_code` so dashboards can support tax-aware review without losing source transaction semantics.
 - Expense receipts are stored in both the receipt ledger and `cash_flows`; image path/link and OCR/extracted details are preserved in both places.
 - Pickups and deliveries share one table so the same model can drive calendar automation.
 - For split sets/relisted remainder pieces, use one cost-bearing economic parent: acquisition COGS stays on the original/full-set listing, and child listings can carry `$0` acquisition COGS with an explicit source/reason.
@@ -18,6 +19,7 @@
 - `inventory_groups`
 - `inventory`
 - `inventory_status_history`
+- `tax_categories`
 - `cash_flows`
 - `contacts`
 - `contact_roles`
@@ -61,6 +63,23 @@ Item-specific post-split repair/refurb costs may be tied to a child item when cl
 `paid_by` / `paid_to` capture partner/accounting attribution. Literal payer/payee details can be preserved in notes or optional cash-movement fields.
 
 If a business account funds or receives a transaction, default partner economics are 50/50 between the two partners unless explicitly overridden.
+
+## Cash-flow tax/reporting taxonomy
+
+`tax_categories` defines reusable public-safe reporting buckets for expenses, revenue, non-tax capital movements, contra-revenue, and review-needed rows. This is designed to make dashboards useful for both operations and tax preparation without turning the repo into tax advice.
+
+Use:
+
+- `cash_flows.category` for operational category/source semantics
+- `cash_flows.tax_category_code` for normalized tax/reporting bucket
+- `cash_flows.deductible_override` only when a reviewed row differs from the category default
+- `cash_flows.tax_treatment_notes` for short explanation or review reason
+
+Missing or ambiguous tax categories are warnings, not blockers, because classification can involve gray areas.
+
+Revenue rows should also be categorized, e.g. `gross_sales_revenue`, `delivery_revenue`, `forfeited_deposit_revenue`, or `refund_or_reversal`, so dashboards do not show blanks or ambiguous income treatment.
+
+See `docs/TAXONOMY.md`.
 
 ## Receipt/audit fields
 

@@ -21,6 +21,8 @@ For each payment movement ask/capture:
 - `paid_by`: buyer / payment source for the sale; default to `Buyer` if unknown, or use the buyer name from pickup/delivery/contact records when known
 - `paid_to`: partner/accounting attribution recipient for balance/investment tracking; usually `Primary Partner`, `Operations Partner`, or `Business Account`
 - `partner_balance_effect`: usually `sale_proceeds_credit` for sale proceeds
+- `tax_category_code`: classify revenue as `gross_sales_revenue`, `delivery_revenue`, `forfeited_deposit_revenue`, `refund_or_reversal`, or `unknown_needs_review` so reporting/dashboard rows are not blank
+- `tax_treatment_notes`: short reason for the revenue classification or why review is needed
 - `payment_method`: `cash`, `venmo`, `zelle`, `cashapp`, `card`, `check`, `other`; leave blank if unsupported/unknown
 - `payment_stage`: `deposit`, `partial_payment`, `final_payment`, `refund`, `reimbursement`, `other`
 - buyer/contact if known
@@ -39,13 +41,15 @@ For split payments, create separate rows. Example: $200 Venmo deposit + $750 cas
 Delivery fees:
 
 - Capture delivery fee separately from item price whenever known.
-- Prefer separate cash-flow/category treatment such as `Delivery Revenue` / delivery-fee line so KPI reporting can distinguish item margin from delivery economics.
+- Prefer separate cash-flow/category treatment such as `Delivery Revenue` / delivery-fee line with `tax_category_code='delivery_revenue'` so KPI reporting can distinguish item margin from delivery economics.
 - If the current source bundles item price + delivery fee for simplicity, preserve total and add a note/split fields when known.
 
 Forfeited deposits:
 
-- Rare and usually immaterial, but classify separately when feasible (`forfeited_deposit` / sale-adjacent income) rather than ordinary final sale revenue.
+- Rare and usually immaterial, but classify separately when feasible (`forfeited_deposit_revenue` / sale-adjacent income) rather than ordinary final sale revenue.
 - Preserve original deposit row; add notes/status history explaining refund vs forfeiture and whether the item returned to market.
+
+Tax/reporting categorization is a dashboard/review aid, not tax advice. If revenue treatment is ambiguous, use `unknown_needs_review`; that should surface a warning, not block an otherwise valid operational record.
 
 ## Confirmation before writes
 

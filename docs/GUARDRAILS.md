@@ -27,6 +27,8 @@ Warnings should not block unrelated updates.
 - Pending sale missing balance note
 - Sale/payment row missing payment method when historical notes do not clearly support one
 - Expense receipt missing optional OCR fields when amount/vendor/date/payer are clear
+- Expense or revenue row missing normalized tax/reporting category after the operational facts are known
+- Tax category kind mismatch, e.g. sale revenue classified as an expense bucket
 
 ## Current guarded conditions
 
@@ -40,6 +42,9 @@ Warnings should not block unrelated updates.
 - Group allocated-cost mismatch, excluding parent-absorbed / child-zero-COGS groups
 - Sale/payment missing payment method
 - Sale/payment missing paid-to party
+- Expense older than 30 days with null or `unknown_needs_review` tax category
+- Sale/delivery revenue with null or `unknown_needs_review` tax category
+- Expense/revenue tax category kind mismatch
 
 ## Principle
 

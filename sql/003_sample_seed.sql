@@ -1,5 +1,37 @@
 -- Synthetic sample data for the AI-assisted furniture operations system
 
+INSERT INTO tax_categories (tax_category_code, display_name, category_kind, schedule_c_hint, default_deductible, public_notes) VALUES
+  ('inventory_cogs', 'Inventory cost of goods sold', 'expense', 'Cost of goods sold', true, 'Inventory purchases or allocated acquisition costs tied to resale items.'),
+  ('labor_contract', 'Contract labor', 'expense', 'Contract labor', true, 'Mover, repair, refurb, or other non-employee labor.'),
+  ('storage', 'Storage', 'expense', 'Rent or lease / storage expense', true, 'Storage unit, warehouse, or inventory holding costs.'),
+  ('vehicle_fuel', 'Vehicle fuel', 'expense', 'Car and truck expenses', true, 'Fuel used for sourcing, pickup, delivery, or business errands.'),
+  ('vehicle_mileage', 'Vehicle mileage', 'expense', 'Car and truck expenses', true, 'Mileage/trip allocation when using mileage-style tracking.'),
+  ('supplies', 'Supplies', 'expense', 'Supplies', true, 'Packing, cleaning, repair, staging, or operational supplies.'),
+  ('marketplace_fees', 'Marketplace and payment fees', 'expense', 'Commissions and fees', true, 'Marketplace, payment processor, listing, or platform fees.'),
+  ('advertising', 'Advertising and promotion', 'expense', 'Advertising', true, 'Paid promotion, boosts, signs, or marketing.'),
+  ('professional_services', 'Professional services', 'expense', 'Legal and professional services', true, 'Accounting, legal, consulting, or professional support.'),
+  ('software', 'Software and subscriptions', 'expense', 'Other expenses / software', true, 'Tools, SaaS, hosting, or automation software.'),
+  ('insurance', 'Insurance', 'expense', 'Insurance', true, 'Business insurance or liability coverage.'),
+  ('taxes_licenses', 'Taxes and licenses', 'expense', 'Taxes and licenses', true, 'Business registration, permits, licenses, or non-income taxes.'),
+  ('meals', 'Meals', 'expense', 'Meals', true, 'Business meal category; deductibility may require review/limits.'),
+  ('bank_fees', 'Bank and finance fees', 'expense', 'Other expenses / bank fees', true, 'Bank, merchant, or finance charges.'),
+  ('gross_sales_revenue', 'Gross sales revenue', 'revenue', 'Gross receipts or sales', false, 'Item sale proceeds before expenses or fees.'),
+  ('delivery_revenue', 'Delivery revenue', 'revenue', 'Gross receipts or sales', false, 'Delivery fee income separated from item sale price when known.'),
+  ('forfeited_deposit_revenue', 'Forfeited deposit revenue', 'revenue', 'Other income / gross receipts review', false, 'Deposit retained after cancelled sale; review treatment.'),
+  ('refund_or_reversal', 'Refund or reversal', 'contra_revenue', 'Returns and allowances / expense offset review', false, 'Refunds, reversals, or negative adjustments requiring review.'),
+  ('owner_contribution', 'Owner contribution / capital movement', 'non_tax', 'Balance sheet / owner contribution review', false, 'Partner/owner funding or non-income capital movement.'),
+  ('not_deductible', 'Not deductible / non-business', 'non_tax', 'Not deductible', false, 'Known non-deductible or non-business item.'),
+  ('other_expense', 'Other business expense', 'expense', 'Other expenses', true, 'Fallback for deductible business expense that does not fit a clearer public category.'),
+  ('unknown_needs_review', 'Unknown / needs review', 'review', 'Needs review', false, 'Use when tax/reporting category is ambiguous; should surface as warning, not blocker.')
+ON CONFLICT (tax_category_code) DO UPDATE SET
+  display_name = EXCLUDED.display_name,
+  category_kind = EXCLUDED.category_kind,
+  schedule_c_hint = EXCLUDED.schedule_c_hint,
+  default_deductible = EXCLUDED.default_deductible,
+  public_notes = EXCLUDED.public_notes,
+  active = true,
+  updated_at = now();
+
 INSERT INTO contacts (display_name, contact_type, phone, email, notes) VALUES
   ('Alex Partner', 'partner', NULL, 'alex@example.invalid', 'Synthetic partner contact'),
   ('Casey Partner', 'partner', NULL, 'casey@example.invalid', 'Synthetic partner contact'),
@@ -49,11 +81,11 @@ INSERT INTO listing_price_history (listing_id, price, changed_at, reason)
 SELECT listing_id, current_asking_price, listed_at, 'initial_price'
 FROM listings;
 
-INSERT INTO cash_flows (cf_record_id, inventory_uid, inventory_group_id, contact_id, txn_type, txn_date, vendor_or_description, amount, category, purpose, notes, paid_by, paid_to, payment_method, payment_stage) VALUES
-  ('CF-0001', 'INV-0001', 'INV-0001', NULL, 'Expense', '2026-01-01', 'Acquisition cost', 300.00, 'COGS - Inventory', 'Buy Inventory', 'Synthetic purchase', 'Alex Partner', NULL, 'cash', 'inventory_purchase'),
-  ('CF-0002', 'INV-0001', 'INV-0001', (SELECT contact_id FROM contacts WHERE display_name='Morgan Buyer'), 'Payment', '2026-01-06', 'Deposit for media cabinet', 200.00, 'Sale', 'Sell Inventory', 'Synthetic deposit by buyer', NULL, 'Casey Partner', 'venmo', 'deposit'),
-  ('CF-0003', 'INV-0003-A', 'GROUP-0003', NULL, 'Expense', '2026-01-05', 'Allocated set acquisition cost', 300.00, 'COGS - Inventory', 'Buy Inventory', 'Synthetic allocation', 'Casey Partner', NULL, 'cash', 'inventory_purchase'),
-  ('CF-0004', 'INV-0003-B', 'GROUP-0003', NULL, 'Expense', '2026-01-05', 'Allocated set acquisition cost', 200.00, 'COGS - Inventory', 'Buy Inventory', 'Synthetic allocation', 'Casey Partner', NULL, 'cash', 'inventory_purchase');
+INSERT INTO cash_flows (cf_record_id, inventory_uid, inventory_group_id, contact_id, txn_type, txn_date, vendor_or_description, amount, category, tax_category_code, tax_treatment_notes, purpose, notes, paid_by, paid_to, payment_method, payment_stage) VALUES
+  ('CF-0001', 'INV-0001', 'INV-0001', NULL, 'Expense', '2026-01-01', 'Acquisition cost', 300.00, 'COGS - Inventory', 'inventory_cogs', 'Synthetic inventory purchase categorized for COGS reporting.', 'Buy Inventory', 'Synthetic purchase', 'Alex Partner', NULL, 'cash', 'inventory_purchase'),
+  ('CF-0002', 'INV-0001', 'INV-0001', (SELECT contact_id FROM contacts WHERE display_name='Morgan Buyer'), 'Payment', '2026-01-06', 'Deposit for media cabinet', 200.00, 'Sale', 'gross_sales_revenue', 'Synthetic customer deposit classified as sale revenue for public reporting example.', 'Sell Inventory', 'Synthetic deposit by buyer', NULL, 'Casey Partner', 'venmo', 'deposit'),
+  ('CF-0003', 'INV-0003-A', 'GROUP-0003', NULL, 'Expense', '2026-01-05', 'Allocated set acquisition cost', 300.00, 'COGS - Inventory', 'inventory_cogs', 'Synthetic allocated COGS for child item.', 'Buy Inventory', 'Synthetic allocation', 'Casey Partner', NULL, 'cash', 'inventory_purchase'),
+  ('CF-0004', 'INV-0003-B', 'GROUP-0003', NULL, 'Expense', '2026-01-05', 'Allocated set acquisition cost', 200.00, 'COGS - Inventory', 'inventory_cogs', 'Synthetic allocated COGS for child item.', 'Buy Inventory', 'Synthetic allocation', 'Casey Partner', NULL, 'cash', 'inventory_purchase');
 
 INSERT INTO pickups_deliveries (movement_type, inventory_uid, inventory_group_id, contact_id, counterparty_name, counterparty_contact, location_address, scheduled_start, scheduled_end, movement_status, assigned_to, deposit_received, notes) VALUES
   ('buyer_pickup', 'INV-0001', 'INV-0001', (SELECT contact_id FROM contacts WHERE display_name='Morgan Buyer'), 'Morgan Buyer', '555-0101', 'Synthetic address', now() + interval '2 days', now() + interval '2 days 2 hours', 'confirmed', 'Riley Mover', 200.00, 'Synthetic buyer pickup');
