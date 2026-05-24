@@ -58,3 +58,17 @@ For marketplace-related searches/syncs, use slow randomized pacing to reduce blo
 Check for duplicate real external listing IDs/URLs before writes. Placeholder IDs like N/A/TBD should not be treated as real listing IDs.
 
 Duplicate real listing IDs/URLs are blockers. Expired/inactive listing details are warnings/action triggers unless the requested update depends on them.
+
+## Agent action audit trail
+
+For any AI-assisted workflow that previews, writes, blocks, or fails, create an `agent_action_log` entry or equivalent implementation note with:
+
+- `skill_name` matching this skill
+- capped/sanitized `chat_input_excerpt`
+- `operation_summary` with enough detail to replicate the action
+- summarized `guardrails_before` and `guardrails_after`
+- affected `entity_type` / `entity_id`
+- status: `preview_only`, `success`, `failed`, `blocked_by_guardrail`, or `needs_human_review`
+- `human_feedback` when Matt, a reviewer, or a collaborator corrects behavior
+
+Public examples must stay synthetic. Do not include real private chat text, receipts, customer/contact data, credentials, addresses, phone numbers, or raw production SQL payloads in the published repository.

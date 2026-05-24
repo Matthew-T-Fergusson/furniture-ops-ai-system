@@ -112,3 +112,17 @@ If a note could change accounting interpretation, flag it for review and compare
 - Do not create realized revenue without a cash-flow row.
 - Do not delete history rows; add corrective transition events.
 - Do not rewrite accounting based only on ambiguous note phrases like "paid by Operations Partner" or "Primary Partner paid".
+
+## Agent action audit trail
+
+For any AI-assisted workflow that previews, writes, blocks, or fails, create an `agent_action_log` entry or equivalent implementation note with:
+
+- `skill_name` matching this skill
+- capped/sanitized `chat_input_excerpt`
+- `operation_summary` with enough detail to replicate the action
+- summarized `guardrails_before` and `guardrails_after`
+- affected `entity_type` / `entity_id`
+- status: `preview_only`, `success`, `failed`, `blocked_by_guardrail`, or `needs_human_review`
+- `human_feedback` when Matt, a reviewer, or a collaborator corrects behavior
+
+Public examples must stay synthetic. Do not include real private chat text, receipts, customer/contact data, credentials, addresses, phone numbers, or raw production SQL payloads in the published repository.

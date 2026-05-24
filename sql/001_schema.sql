@@ -207,6 +207,72 @@ CREATE TABLE IF NOT EXISTS contractor_ratings (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 
+
+
+-- Agent action audit trail.
+--
+-- Design intent:
+-- - The live system uses AI-assisted workflows against persistent business data.
+-- - Every agent-assisted write should be reproducible enough for a human or
+--   future agent to understand what happened, which workflow produced it, what
+--   guardrails saw before/after, and whether the action succeeded, failed, or
+--   stopped for review.
+-- - This public table is intentionally safe for portfolio use. Store capped,
+--   sanitized excerpts and operation summaries here; do not store private chat
+--   transcripts, receipt images, customer contact data, credentials, or raw
+--   production SQL payloads in the public repository.
+CREATE TABLE IF NOT EXISTS agent_action_log (
+  action_id bigserial PRIMARY KEY,
+  skill_name text NOT NULL,
+  agent_identifier text NOT NULL DEFAULT 'agent',
+  prompt_version text,
+  chat_input_excerpt text,
+  operation_summary text NOT NULL,
+  sql_emitted text,
+  guardrails_before jsonb NOT NULL DEFAULT '{}'::jsonb,
+  guardrails_after jsonb NOT NULL DEFAULT '{}'::jsonb,
+  entity_type text,
+  entity_id text,
+  status text NOT NULL,
+  error_message text,
+  human_feedback text,
+  correction_action_id bigint REFERENCES agent_action_log(action_id),
+  created_at timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT agent_action_log_status_chk CHECK (status IN ('preview_only','success','failed','blocked_by_guardrail','needs_human_review')),
+  CONSTRAINT agent_action_log_excerpt_len_chk CHECK (chat_input_excerpt IS NULL OR char_length(chat_input_excerpt) <= 500)
+);
+
+COMMENT ON TABLE agent_action_log IS 'Public-safe audit trail pattern for AI-assisted workflow actions. Use sanitized excerpts/summaries only.';
+COMMENT ON COLUMN agent_action_log.chat_input_excerpt IS 'Capped sanitized excerpt. Do not store real private chat text in the public repo.';
+COMMENT ON COLUMN agent_action_log.sql_emitted IS 'Optional sanitized SQL/reference operation. Prefer operation_summary when SQL may contain private values.';
+COMMENT ON COLUMN agent_action_log.human_feedback IS 'User/reviewer feedback or correction note that future agents can consult before repeating the action.';
+COMMENT ON COLUMN agent_action_log.correction_action_id IS 'Optional link to an earlier action this row corrects or supersedes.';
+
+CREATE INDEX IF NOT EXISTS idx_agent_action_log_created_at ON agent_action_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_action_log_skill_created ON agent_action_log(skill_name, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_agent_action_log_entity ON agent_action_log(entity_type, entity_id);
+
+CREATE OR REPLACE VIEW agent_action_log_recent AS
+SELECT
+  action_id,
+  skill_name,
+  agent_identifier,
+  prompt_version,
+  chat_input_excerpt,
+  operation_summary,
+  guardrails_before,
+  guardrails_after,
+  entity_type,
+  entity_id,
+  status,
+  error_message,
+  human_feedback,
+  correction_action_id,
+  created_at
+FROM agent_action_log
+ORDER BY created_at DESC, action_id DESC
+LIMIT 100;
+
 CREATE INDEX IF NOT EXISTS idx_inventory_status ON inventory(status);
 CREATE INDEX IF NOT EXISTS idx_inventory_sold ON inventory(sold);
 CREATE INDEX IF NOT EXISTS idx_inventory_group_id ON inventory(inventory_group_id);

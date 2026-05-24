@@ -1,6 +1,6 @@
 # Guardrails
 
-Agents should run guardrail checks before and after mutations.
+Agents should run guardrail checks before and after mutations, then record the summarized before/after state in `agent_action_log` when an AI-assisted workflow previews, writes, blocks, or fails.
 
 ## Severity model
 
@@ -44,3 +44,5 @@ Warnings should not block unrelated updates.
 ## Principle
 
 When notes do not clearly support a value, leave it blank and flag it for later review instead of fabricating certainty. Prefer explicit source/reason fields over silent assumptions.
+
+When Matt, a reviewer, or a collaborator corrects an agent action, record the feedback in `agent_action_log.human_feedback` or the relevant skill documentation so future runs have a durable reference instead of relying on memory.

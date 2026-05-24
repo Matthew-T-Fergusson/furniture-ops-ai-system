@@ -27,6 +27,7 @@ Current state:
 - Structured source of truth for inventory, listings, cash flow, contacts, logistics, status history, receipts, and reporting concepts
 - Agent-assisted workflow layer for repeatable data-entry and review patterns
 - SQL guardrails and regression tests for common risky or incomplete writes
+- Agent action audit trail pattern for reviewable AI-assisted operations
 - Analytics materialized views for operating KPIs and status aging
 - Backup/recovery documentation and public-safe reference scripts
 - Synthetic sample data only in the public repository
@@ -78,7 +79,8 @@ The agent layer is intended to:
 - enforce required fields and workflow rules before writes
 - surface exceptions and missing information instead of silently guessing
 - refresh or query operational views for decision support
-- preserve auditability through status history, guardrails, and planned agent action logging
+- preserve auditability through status history, guardrails, and `agent_action_log`
+- document human feedback/corrections so future agents can avoid repeating mistakes
 - keep humans in control of ambiguous decisions, external actions, and financial/legal consequences
 
 The important design principle is not “autonomy.” It is **structured assistance**: using an AI workflow layer to make real business operations more consistent, reviewable, and queryable.
@@ -93,6 +95,7 @@ Core documentation:
 - [`docs/DATA_MODEL.md`](docs/DATA_MODEL.md)
 - [`docs/WORKFLOWS.md`](docs/WORKFLOWS.md)
 - [`docs/GUARDRAILS.md`](docs/GUARDRAILS.md)
+- [`docs/AGENT_ACTION_LOG.md`](docs/AGENT_ACTION_LOG.md)
 - [`docs/ANALYTICS.md`](docs/ANALYTICS.md)
 - [`docs/BACKUP_RECOVERY.md`](docs/BACKUP_RECOVERY.md)
 - [`docs/PORTFOLIO_CASE_STUDY.md`](docs/PORTFOLIO_CASE_STUDY.md)
@@ -146,6 +149,7 @@ The work demonstrates:
 - practical domain modeling for messy operations
 - normalized Postgres schema design for real business events
 - guardrails that catch incomplete or inconsistent writes
+- audit-trail structure for AI-assisted actions, previews, failures, and human corrections
 - regression tests for operational data-quality rules
 - analytics views shaped around operating decisions rather than abstract metrics
 - privacy-conscious public documentation of a live internal system

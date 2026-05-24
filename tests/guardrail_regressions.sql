@@ -71,5 +71,50 @@ INSERT INTO inventory (inventory_uid, inventory_group_id, item_id, cl_url, item_
 VALUES ('T-SOLD-FLAG-1', 'T-SOLD-FLAG-G', 'CL-T-SOLD-FLAG-1', 'https://example.invalid/t-sold-flag-1', 'Synthetic sold/status mismatch', 65.00, 65.00, 'listed_active', true, 'direct_or_imported');
 SELECT assert_guardrail('inventory', 'T-SOLD-FLAG-1', 'sold_flag_status_mismatch', 'error');
 
+-- 7) Agent audit trail: synthetic action log rows must round-trip through
+-- the recent view with JSON guardrail snapshots and correction feedback.
+INSERT INTO agent_action_log (
+  skill_name,
+  agent_identifier,
+  prompt_version,
+  chat_input_excerpt,
+  operation_summary,
+  guardrails_before,
+  guardrails_after,
+  entity_type,
+  entity_id,
+  status,
+  human_feedback
+) VALUES (
+  'furniture-status-guardrails',
+  'regression-test-agent',
+  'test-v1',
+  'Synthetic capped excerpt for action-log regression.',
+  'Regression inserted a synthetic action-log row and verified recent-view visibility.',
+  '{"error": 0, "warning": 0}'::jsonb,
+  '{"error": 1, "warning": 0, "anomalies": ["sold_flag_status_mismatch"]}'::jsonb,
+  'inventory',
+  'T-SOLD-FLAG-1',
+  'blocked_by_guardrail',
+  'Synthetic reviewer correction: require guardrail evidence before status mutation.'
+);
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM agent_action_log_recent
+    WHERE skill_name = 'furniture-status-guardrails'
+      AND entity_type = 'inventory'
+      AND entity_id = 'T-SOLD-FLAG-1'
+      AND status = 'blocked_by_guardrail'
+      AND guardrails_after->>'error' = '1'
+      AND human_feedback LIKE 'Synthetic reviewer correction:%'
+  ) THEN
+    RAISE EXCEPTION 'Expected agent_action_log_recent row not found or JSON/feedback did not round-trip';
+  END IF;
+END;
+$$;
+
 ROLLBACK;
 \echo 'guardrail_regressions: ok'

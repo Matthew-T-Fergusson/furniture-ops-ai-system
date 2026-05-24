@@ -63,4 +63,18 @@ if [[ "${status_aging_count}" == "0" ]]; then
   exit 1
 fi
 
+# Agent governance regression: the public repository must expose the audit-trail
+# pattern with synthetic rows and a recent-action view, proving that agent
+# actions are reviewable rather than invisible side effects.
+action_log_count="$(run_psql -Atc "SELECT count(*) FROM agent_action_log_recent;")"
+if [[ "${action_log_count}" == "0" ]]; then
+  echo "CI smoke failed: agent_action_log_recent produced zero rows" >&2
+  exit 1
+fi
+blocked_action_count="$(run_psql -Atc "SELECT count(*) FROM agent_action_log_recent WHERE status='blocked_by_guardrail' AND guardrails_after ? 'anomalies';")"
+if [[ "${blocked_action_count}" == "0" ]]; then
+  echo "CI smoke failed: no blocked_by_guardrail action with guardrail anomaly summary" >&2
+  exit 1
+fi
+
 echo "ci-smoke: ok"
