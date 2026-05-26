@@ -55,12 +55,14 @@ ON CONFLICT DO NOTHING;
 INSERT INTO inventory_groups (inventory_group_id, group_type, acquisition_date, total_acquisition_cost, cost_allocation_method, notes) VALUES
   ('INV-0001', 'standalone', '2026-01-01', 300.00, 'not_allocated', 'Standalone synthetic item'),
   ('INV-0002', 'standalone', '2026-01-03', 0.00, 'not_allocated', 'Free synthetic item'),
+  ('INV-0004', 'standalone', '2026-01-04', 125.00, 'not_allocated', 'Synthetic disposed/write-off item'),
   ('GROUP-0003', 'set', '2026-01-05', 500.00, 'manual', 'Synthetic set with allocated children')
 ON CONFLICT DO NOTHING;
 
 INSERT INTO inventory (inventory_uid, inventory_id, inventory_group_id, item_id, cl_url, item_title, category, brand, date_acquired, list_price_target, cost, acquisition_cost, status, status_updated_at, cost_basis_source, cost_allocation_method, allocated_cost, expected_sale_price, listed_at, pending_at, sold_at, note) VALUES
   ('INV-0001', 'INV-0001', 'INV-0001', 'CL-SAMPLE-001', 'https://example.invalid/listing/001', 'Solid wood media cabinet', 'Cabinet', 'Example Brand', '2026-01-01', 1200.00, 300.00, 300.00, 'pending_sale', now(), 'direct_or_imported', 'not_allocated', NULL, 1100.00, now() - interval '5 days', now(), NULL, 'Synthetic pending sale with deposit'),
   ('INV-0002', 'INV-0002', 'INV-0002', NULL, NULL, 'Free accent chair', 'Chair', NULL, '2026-01-03', 150.00, 0.00, 0.00, 'acquired_unlisted', now(), 'free', 'not_allocated', NULL, NULL, NULL, NULL, NULL, 'Synthetic free item'),
+  ('INV-0004', 'INV-0004', 'INV-0004', NULL, NULL, 'Damaged synthetic side table', 'Table', NULL, '2026-01-04', 175.00, 125.00, 125.00, 'disposed', now(), 'direct_or_imported', 'not_allocated', NULL, NULL, NULL, NULL, NULL, 'Synthetic disposed item used to prove zero-revenue inventory write-off reporting'),
   ('INV-0003-A', 'INV-0003-A', 'GROUP-0003', 'CL-SAMPLE-003A', 'https://example.invalid/listing/003a', 'Dining table from set', 'Dining Room Set', 'Example Maker', '2026-01-05', 900.00, NULL, NULL, 'listed_active', now(), 'bundle_child', 'manual', 300.00, NULL, now() - interval '2 days', NULL, NULL, 'Synthetic child item'),
   ('INV-0003-B', 'INV-0003-B', 'GROUP-0003', 'CL-SAMPLE-003B', 'https://example.invalid/listing/003b', 'Six chairs from set', 'Chair', 'Example Maker', '2026-01-05', 700.00, NULL, NULL, 'listed_active', now(), 'bundle_child', 'manual', 200.00, NULL, now() - interval '2 days', NULL, NULL, 'Synthetic child item')
 ON CONFLICT DO NOTHING;
@@ -69,6 +71,7 @@ INSERT INTO inventory_status_history (inventory_uid, inventory_group_id, from_st
   ('INV-0001', 'INV-0001', NULL, 'listed_active', now() - interval '5 days', 'agent', 'initial_listing', 'Synthetic status event'),
   ('INV-0001', 'INV-0001', 'listed_active', 'pending_sale', now(), 'agent', 'deposit_received', 'Synthetic deposit moved item to pending'),
   ('INV-0002', 'INV-0002', NULL, 'acquired_unlisted', now(), 'agent', 'acquired', 'Synthetic status event'),
+  ('INV-0004', 'INV-0004', NULL, 'disposed', now(), 'agent', 'damaged_beyond_sale', 'Synthetic disposed/write-off status event'),
   ('INV-0003-A', 'GROUP-0003', NULL, 'listed_active', now() - interval '2 days', 'agent', 'listed', 'Synthetic status event'),
   ('INV-0003-B', 'GROUP-0003', NULL, 'listed_active', now() - interval '2 days', 'agent', 'listed', 'Synthetic status event');
 

@@ -56,6 +56,15 @@ if [[ "${source_unsold_count}" != "${kpi_unsold_count}" ]]; then
   exit 1
 fi
 
+# Routine disposed inventory is inventory leaving the business for zero revenue.
+# The KPI layer should expose that basis separately while including it in total
+# COGS, so operators can distinguish sold-item margin from write-offs.
+disposed_kpi_row_count="$(run_psql -Atc "SELECT count(*) FROM analytics_operating_kpis_period_mv WHERE disposed_item_count > 0 AND disposed_inventory_cogs > 0 AND cogs = sold_item_cogs + disposed_inventory_cogs;")"
+if [[ "${disposed_kpi_row_count}" == "0" ]]; then
+  echo "CI smoke failed: disposed inventory COGS is not separately exposed/included in KPI COGS" >&2
+  exit 1
+fi
+
 # The status-history layer should be populated from synthetic status events.
 status_aging_count="$(run_psql -Atc "SELECT count(*) FROM analytics_current_status_aging_mv;")"
 if [[ "${status_aging_count}" == "0" ]]; then

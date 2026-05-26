@@ -109,15 +109,24 @@ This view supports dashboards that combine operational performance with tax prep
 One dashboard table for weekly/monthly operating health:
 
 - gross receipts
-- COGS
+- sold-item COGS
+- disposed-inventory COGS/write-offs
+- total COGS
 - gross margin
+- gross margin percentage
+- inventory/labor cash outflow shown separately from COGS timing
 - storage cost
 - net cash effect
-- sold/acquired/listing counts
+- sold/disposed/acquired/listing counts
 - status transition counts
 - current unsold inventory count/value/cost basis
 - stale status count
 - cycle-time averages
+
+Disposed inventory policy: routine disposed inventory is treated as inventory
+leaving the business for zero revenue. Its basis is included in the COGS family
+for management reporting, but exposed separately as `disposed_inventory_cogs`
+so dashboards can distinguish sold-item economics from operational write-offs.
 
 ## Refresh policy
 

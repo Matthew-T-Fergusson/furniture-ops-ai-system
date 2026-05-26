@@ -67,7 +67,7 @@ The system supports, or is being built to support:
 - Listing identity, marketplace URL, asking price, and price-history tracking
 - Relist-needed and stale-status workflow hooks
 - Guardrail views that surface incomplete or risky operational states
-- Analytics views for inventory pipeline, sales margin, cash flow, listing performance, storage cost, status aging, transitions, cycle time, and operating KPIs
+- Analytics views for inventory pipeline, sales margin, cash flow, listing performance, storage cost, disposed-inventory write-offs, status aging, transitions, cycle time, and operating KPIs
 - Public-safe backup/recovery pattern for encrypted offsite database recovery
 
 ## AI-Assisted Workflow Layer
@@ -115,6 +115,7 @@ The SQL files in `sql/` initialize the schema, guardrail views, synthetic sample
 ## Analytics and Disaster Recovery
 
 - `docs/ANALYTICS.md` explains the KPI materialized views, including inventory pipeline, margin, listing performance, status aging, transitions, and cycle-time metrics.
+- `skills/furniture-ops-dashboard-report/SKILL.md` captures the dashboard-reporting workflow: code builds metrics/charts, while operator-authored analysis provides executive commentary, anomaly cues, and work-item prioritization.
 - `docs/BACKUP_RECOVERY.md` documents the secure restore model: GitHub for code/runbooks, encrypted backups offsite, and the decryption passphrase stored separately.
 - `scripts/create_encrypted_backup.sh` and `scripts/upload_encrypted_backup_to_drive.sh` are public-safe reference scripts. They are heavily commented to show the restore logic without exposing private backup destinations or secrets.
 
@@ -140,6 +141,7 @@ using synthetic rows only:
 - group cost allocation
 - sold/status alignment
 - dashboard KPI unsold-count regression
+- disposed-inventory COGS/write-off KPI regression
 - status-history analytics population
 
 ## Portfolio / Hiring Manager Summary

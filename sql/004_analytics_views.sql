@@ -302,15 +302,47 @@ WITH cash_by_period AS (
     sum(transition_count) FILTER (WHERE to_status = 'listed_active')::integer AS moved_to_listed_active_count,
     sum(transition_count) FILTER (WHERE to_status = 'pending_sale')::integer AS moved_to_pending_sale_count,
     sum(transition_count) FILTER (WHERE to_status = 'sold_delivered')::integer AS moved_to_sold_delivered_count,
-    sum(transition_count) FILTER (WHERE to_status = 'hold')::integer AS moved_to_hold_count
+    sum(transition_count) FILTER (WHERE to_status = 'hold')::integer AS moved_to_hold_count,
+    sum(transition_count) FILTER (WHERE to_status = 'disposed')::integer AS moved_to_disposed_count
   FROM analytics_status_transitions_period_mv
   GROUP BY period_grain, period_start
+), disposed_items AS (
+  SELECT
+    i.inventory_uid,
+    coalesce(
+      min(ish.changed_at) FILTER (WHERE ish.to_status = 'disposed'),
+      i.status_updated_at,
+      i.updated_at,
+      i.created_at,
+      i.date_acquired::timestamp with time zone
+    ) AS disposed_at,
+    coalesce(i.allocated_cost, i.acquisition_cost, i.cost, 0)::numeric(12,2) AS disposed_inventory_cogs
+  FROM inventory i
+  LEFT JOIN inventory_status_history ish ON ish.inventory_uid = i.inventory_uid
+  WHERE i.status = 'disposed'
+  GROUP BY i.inventory_uid, i.status_updated_at, i.updated_at, i.created_at, i.date_acquired,
+           coalesce(i.allocated_cost, i.acquisition_cost, i.cost, 0)
+), disposed_by_period AS (
+  SELECT
+    grain.period_grain,
+    grain.period_start,
+    count(*)::integer AS disposed_item_count,
+    sum(disposed_inventory_cogs)::numeric(12,2) AS disposed_inventory_cogs
+  FROM disposed_items di
+  CROSS JOIN LATERAL (
+    VALUES
+      ('week'::text, date_trunc('week', di.disposed_at)::date),
+      ('month'::text, date_trunc('month', di.disposed_at)::date)
+  ) AS grain(period_grain, period_start)
+  WHERE di.disposed_at IS NOT NULL
+  GROUP BY grain.period_grain, grain.period_start
 ), periods AS (
   SELECT period_grain, period_start FROM cash_by_period
   UNION SELECT period_grain, period_start FROM acquired_by_period
   UNION SELECT period_grain, period_start FROM listings_by_period
   UNION SELECT period_grain, period_start FROM analytics_sales_margin_period_mv
   UNION SELECT period_grain, period_start FROM status_transitions_by_period
+  UNION SELECT period_grain, period_start FROM disposed_by_period
 ), current_inventory AS (
   SELECT
     sum(coalesce(item_count,0))::integer AS current_unsold_inventory_count,
@@ -335,11 +367,19 @@ SELECT
   p.period_grain,
   p.period_start,
   coalesce(c.gross_receipts, 0)::numeric(12,2) AS gross_receipts,
-  coalesce(s.cogs, c.cogs_cash, 0)::numeric(12,2) AS cogs,
-  coalesce(s.gross_margin, coalesce(c.gross_receipts,0) - coalesce(c.cogs_cash,0), 0)::numeric(12,2) AS gross_margin,
+  coalesce(s.cogs, 0)::numeric(12,2) AS sold_item_cogs,
+  coalesce(d.disposed_inventory_cogs, 0)::numeric(12,2) AS disposed_inventory_cogs,
+  (coalesce(s.cogs, 0) + coalesce(d.disposed_inventory_cogs, 0))::numeric(12,2) AS cogs,
+  (coalesce(c.gross_receipts,0) - coalesce(s.cogs,0) - coalesce(d.disposed_inventory_cogs,0))::numeric(12,2) AS gross_margin,
+  CASE
+    WHEN coalesce(c.gross_receipts, 0) = 0 THEN NULL
+    ELSE ((coalesce(c.gross_receipts,0) - coalesce(s.cogs,0) - coalesce(d.disposed_inventory_cogs,0)) / coalesce(c.gross_receipts,0))::numeric(10,4)
+  END AS gross_margin_pct,
+  coalesce(c.cogs_cash, 0)::numeric(12,2) AS inventory_purchase_labor_cash_outflow,
   coalesce(c.storage_cost, 0)::numeric(12,2) AS storage_cost,
   coalesce(c.net_cash_effect, 0)::numeric(12,2) AS net_cash_effect,
   coalesce(s.sold_item_count, 0)::integer AS sold_item_count,
+  coalesce(d.disposed_item_count, 0)::integer AS disposed_item_count,
   coalesce(a.acquired_item_count, 0)::integer AS acquired_item_count,
   coalesce(l.listings_created_count, 0)::integer AS listings_created_count,
   coalesce(st.status_transition_count, 0)::integer AS status_transition_count,
@@ -347,6 +387,7 @@ SELECT
   coalesce(st.moved_to_pending_sale_count, 0)::integer AS moved_to_pending_sale_count,
   coalesce(st.moved_to_sold_delivered_count, 0)::integer AS moved_to_sold_delivered_count,
   coalesce(st.moved_to_hold_count, 0)::integer AS moved_to_hold_count,
+  coalesce(st.moved_to_disposed_count, 0)::integer AS moved_to_disposed_count,
   ci.current_unsold_inventory_count,
   ci.current_unsold_pipeline_group_count,
   ci.current_unsold_list_price_target,
@@ -361,6 +402,7 @@ SELECT
 FROM periods p
 LEFT JOIN cash_by_period c USING (period_grain, period_start)
 LEFT JOIN analytics_sales_margin_period_mv s USING (period_grain, period_start)
+LEFT JOIN disposed_by_period d USING (period_grain, period_start)
 LEFT JOIN acquired_by_period a USING (period_grain, period_start)
 LEFT JOIN listings_by_period l USING (period_grain, period_start)
 LEFT JOIN status_transitions_by_period st USING (period_grain, period_start)
@@ -369,7 +411,7 @@ CROSS JOIN current_status_aging csa
 CROSS JOIN cycle_time ct;
 
 COMMENT ON MATERIALIZED VIEW analytics_operating_kpis_period_mv IS
-  'Weekly/monthly KPI dashboard. current_unsold_inventory_count intentionally sums grouped pipeline item_count.';
+  'Weekly/monthly KPI dashboard. COGS separates sold-item COGS from disposed-inventory write-offs; current_unsold_inventory_count intentionally sums grouped pipeline item_count.';
 
 CREATE INDEX IF NOT EXISTS idx_analytics_inventory_pipeline_status ON analytics_inventory_pipeline_mv(inventory_status, category);
 CREATE INDEX IF NOT EXISTS idx_analytics_status_aging_summary_status ON analytics_status_aging_summary_mv(inventory_status, status_age_bucket, stale_status_flag);
@@ -418,4 +460,3 @@ COMMENT ON MATERIALIZED VIEW analytics_cash_flow_tax_category_period_mv IS
 
 CREATE INDEX IF NOT EXISTS idx_analytics_cash_flow_tax_category_period
   ON analytics_cash_flow_tax_category_period_mv(period_grain, period_start, tax_category_code);
-
