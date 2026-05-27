@@ -112,9 +112,22 @@ make ci-smoke
 
 The SQL files in `sql/` initialize the schema, guardrail views, synthetic sample rows, and dashboard-ready analytics materialized views.
 
+## Dashboard Generation
+
+This repo includes a runnable public-safe static dashboard generator built against the synthetic analytics layer:
+
+```bash
+python3 scripts/export_dashboard_context.py --output reports/dashboard/dashboard_context.json
+python3 scripts/generate_kpi_dashboard.py --output-dir reports/dashboard
+```
+
+Use `--analysis-file` to inject operator-written executive commentary. The generator renders metrics and tables; it intentionally does not invent executive analysis in Python.
+
 ## Analytics and Disaster Recovery
 
 - `docs/ANALYTICS.md` explains the KPI materialized views, including inventory pipeline, margin, listing performance, status aging, transitions, and cycle-time metrics.
+- `scripts/export_dashboard_context.py` exports public-safe dashboard context from the synthetic DB.
+- `scripts/generate_kpi_dashboard.py` renders a public-safe static HTML dashboard from the analytics views, with optional injected analysis.
 - `skills/furniture-ops-dashboard-report/SKILL.md` captures the dashboard-reporting workflow: code builds metrics/charts, while operator-authored analysis provides executive commentary, anomaly cues, and work-item prioritization.
 - `docs/BACKUP_RECOVERY.md` documents the secure restore model: GitHub for code/runbooks, encrypted backups offsite, and the decryption passphrase stored separately.
 - `scripts/create_encrypted_backup.sh` and `scripts/upload_encrypted_backup_to_drive.sh` are public-safe reference scripts. They are heavily commented to show the restore logic without exposing private backup destinations or secrets.

@@ -105,6 +105,13 @@ if [[ "${tax_view_count}" == "0" ]]; then
   exit 1
 fi
 
+# Dashboard script regression: the public dashboard generator/exporter should be
+# runnable from the synthetic analytics layer, not just documented as an idea.
+python3 -m py_compile "${ROOT}/scripts/generate_kpi_dashboard.py" "${ROOT}/scripts/export_dashboard_context.py"
+python3 "${ROOT}/scripts/export_dashboard_context.py" --output /tmp/furniture_ops_poc_dashboard_context.json >/dev/null
+python3 "${ROOT}/scripts/generate_kpi_dashboard.py" --output-dir /tmp/furniture_ops_poc_dashboard --as-of 20260527 >/dev/null
+test -s /tmp/furniture_ops_poc_dashboard/furniture_ops_dashboard_20260527.html
+
 # Warning-only review semantics: ambiguous tax categories should surface as
 # warnings, not blockers, because classification has gray areas.
 run_psql -c "INSERT INTO cash_flows (cf_record_id, txn_type, txn_date, vendor_or_description, amount, category, tax_category_code) VALUES ('CI-TAX-REVIEW', 'Expense', current_date - interval '45 days', 'Synthetic review expense', 12.34, 'Supplies', 'unknown_needs_review');" >/dev/null
