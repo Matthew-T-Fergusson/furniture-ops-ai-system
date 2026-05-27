@@ -175,6 +175,17 @@ The work demonstrates:
 
 The strongest theme is converting high-context business activity into structured, auditable, AI-accessible operational systems.
 
+
+## Public Demo
+
+A sanitized static dashboard demo is published with GitHub Pages:
+
+```text
+https://matthew-t-fergusson.github.io/furniture-ops-ai-system/dashboard/
+```
+
+The demo uses synthetic data only and is safe to share publicly.
+
 ## Repository Name
 
 Current repository name:

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>Furniture Ops KPI Dashboard</title>
+<script src='https://cdn.jsdelivr.net/npm/chart.js'></script>
+<style>
+body { font-family: Inter, system-ui, -apple-system, Segoe UI, sans-serif; margin: 24px; color: #172033; background: #f6f8fb; }
+h1, h2, h3 { color: #101828; }
+.card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 16px 0; }
+.card { background: white; border: 1px solid #d9e1ec; border-radius: 12px; padding: 14px; box-shadow: 0 1px 2px rgba(16,24,40,.06); }
+.card b { display: block; font-size: 12px; color: #667085; text-transform: uppercase; letter-spacing: .04em; }
+.card span { display: block; font-size: 22px; font-weight: 750; margin-top: 6px; }
+section { background: white; border: 1px solid #d9e1ec; border-radius: 14px; padding: 18px; margin: 18px 0; }
+.commentary-box { background: #f0f6ff; border-left: 4px solid #2f6fed; padding: 12px 14px; border-radius: 8px; margin: 12px 0; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; margin: 12px 0; }
+th, td { border-bottom: 1px solid #e4e7ec; padding: 8px; text-align: left; vertical-align: top; }
+th { background: #f9fafb; color: #475467; }
+.two { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
+.note { color: #667085; font-size: 13px; }
+canvas { max-height: 360px; }
+</style>
+</head>
+<body>
+<h1>Furniture Ops KPI Dashboard</h1>
+<p class='note'>Synthetic public-reference dashboard generated 2026-05-27T00:44:43Z. Private deployments should inject operator-written analysis with <code>--analysis-file</code>.</p>
+<section>
+<h2>Executive summary</h2>
+<div class='commentary-box'><ul><li>The synthetic demo shows the operating model rather than real business performance: revenue, sold-item COGS, disposed-inventory write-offs, margin, cash effect, and active inventory all roll up from normalized source tables.</li><li>The important dashboard pattern is separation of operating economics from cash timing. Sold-item COGS and disposed-inventory COGS are visible separately, while inventory/labor cash outflow remains a cash-management signal.</li><li>The next decision in a real deployment would be prioritizing stale active listings and pending-sale cleanup before expanding sourcing volume.</li></ul></div>
+<div class='card-grid'><div class='card'><b>Gross receipts</b><span>$0.00</span></div><div class='card'><b>Gross margin</b><span>$-125.00</span></div><div class='card'><b>GM %</b><span>—</span></div><div class='card'><b>Sold COGS</b><span>$0.00</span></div><div class='card'><b>Disposed COGS</b><span>$125.00</span></div><div class='card'><b>Net cash effect</b><span>$0.00</span></div><div class='card'><b>Current unsold</b><span>4</span></div><div class='card'><b>Stale statuses</b><span>0</span></div></div>
+</section>
+<section>
+<h2>Monthly P&L + cash trend</h2>
+<div class='commentary-box'><p>The trend view separates receipts, gross margin, and net cash effect so operators can see whether sales quality and cash movement are telling the same story.</p></div>
+<canvas id='trend'></canvas>
+<table><thead><tr><th>Month</th><th>Revenue</th><th>Sold COGS</th><th>Disposed COGS</th><th>Total COGS</th><th>GM $</th><th>GM %</th><th>Storage</th><th>Net cash</th><th>Sold</th><th>Disposed</th><th>Acquired</th></tr></thead><tbody><tr><td>2026-01-01</td><td>$200.00</td><td>$300.00</td><td>$0.00</td><td>$300.00</td><td>$-100.00</td><td>-50.0%</td><td>$0.00</td><td>$-600.00</td><td>1</td><td>0</td><td>5</td></tr><tr><td>2026-05-01</td><td>$0.00</td><td>$0.00</td><td>$125.00</td><td>$125.00</td><td>$-125.00</td><td>—</td><td>$0.00</td><td>$0.00</td><td>0</td><td>1</td><td>0</td></tr></tbody></table>
+</section>
+<section>
+<h2>Operational commentary: anomalies, trends, outstanding work</h2>
+<div class='commentary-box'><p>This sanitized dashboard is a portfolio/demo version. It demonstrates how an operator can review pipeline health, aged listings, margin outliers, write-offs, and work cues from one static HTML report without exposing private operational data.</p></div>
+<div class='two'>
+<div><h3>Anomaly/action cues</h3><table><thead><tr><th>Cue</th></tr></thead><tbody><tr><td><b>Pending-sale hygiene:</b> demo pending items without complete scheduling metadata should be followed up or moved back to active if the buyer is stale.</td></tr><tr><td><b>Listing age:</b> items with high days-since-listed should get a markdown, photo refresh, relist, cross-post, bundle, or disposal decision.</td></tr><tr><td><b>Write-off visibility:</b> disposed inventory appears as separate COGS so operators can distinguish true sold-item economics from operational loss/write-off decisions.</td></tr></tbody></table></div>
+<div><h3>Work-item cues</h3><table><thead><tr><th>Cue</th></tr></thead><tbody><tr><td><b>Compliance/bookkeeping lane:</b> keep cash-flow taxonomy and receipt-backed expense capture clean before relying on margin reports for decisions.</td></tr><tr><td><b>Listing execution lane:</b> prioritize aged active listings and stale pending-sale rows because those are closest to cash conversion.</td></tr><tr><td><b>Automation maturity lane:</b> keep dashboard generation repeatable with context export, operator-authored analysis, and CI smoke checks.</td></tr></tbody></table></div>
+</div>
+</section>
+<section>
+<h2>Current inventory pipeline</h2>
+<div class='commentary-box'><p>The inventory pipeline table shows where inventory is sitting now and whether target value is concentrated in items that are actually listed.</p></div>
+<table><thead><tr><th>Status</th><th>Category</th><th>Items</th><th>Active listings</th><th>Target value</th><th>Cost basis</th><th>Avg days since acquired</th></tr></thead><tbody><tr><td>acquired_unlisted</td><td>Chair</td><td>1</td><td>0</td><td>$150.00</td><td>$0.00</td><td>144.0</td></tr><tr><td>listed_active</td><td>Chair</td><td>1</td><td>1</td><td>$700.00</td><td>$200.00</td><td>142.0</td></tr><tr><td>listed_active</td><td>Dining Room Set</td><td>1</td><td>1</td><td>$900.00</td><td>$300.00</td><td>142.0</td></tr><tr><td>pending_sale</td><td>Cabinet</td><td>1</td><td>0</td><td>$1,200.00</td><td>$300.00</td><td>146.0</td></tr></tbody></table>
+</section>
+<section>
+<h2>Stale status items</h2>
+<div class='commentary-box'><p>Stale status rows are the operational queue: each item should either get a status correction, a listing refresh, a buyer follow-up, or a disposal decision.</p></div>
+<table><thead><tr><th>UID</th><th>Item</th><th>Category</th><th>Status</th><th>Days</th><th>Target</th><th>Cost basis</th><th>Reason</th></tr></thead><tbody></tbody></table>
+</section>
+<section>
+<h2>Profitability</h2>
+<div class='commentary-box'><p>Margin tables are designed to identify both winners worth replicating and low/negative margin transactions that need explanation.</p></div>
+<div class='two'><div><h3>Top item margins</h3><table><thead><tr><th>UID</th><th>Item</th><th>Category</th><th>Sale date</th><th>Revenue</th><th>COGS</th><th>GM $</th><th>GM %</th></tr></thead><tbody><tr><td>INV-0001</td><td>Solid wood media cabinet</td><td>Cabinet</td><td>2026-01-06</td><td>$200.00</td><td>$300.00</td><td>$-100.00</td><td>-50.0%</td></tr></tbody></table></div><div><h3>Worst margins by dollar GM</h3><table><thead><tr><th>UID</th><th>Item</th><th>Category</th><th>Sale date</th><th>Revenue</th><th>COGS</th><th>GM $</th><th>GM %</th></tr></thead><tbody><tr><td>INV-0001</td><td>Solid wood media cabinet</td><td>Cabinet</td><td>2026-01-06</td><td>$200.00</td><td>$300.00</td><td>$-100.00</td><td>-50.0%</td></tr></tbody></table></div></div>
+</section>
+<section>
+<h2>Aging inventory</h2>
+<div class='commentary-box'><p>Aged listing rows should drive markdowns, photo refreshes, bundling, relisting, or disposal decisions rather than sitting passively.</p></div>
+<table><thead><tr><th>Listing ID</th><th>UID</th><th>Platform</th><th>Listing status</th><th>Inventory status</th><th>Title</th><th>Days listed</th><th>Ask</th><th>Ask vs target</th></tr></thead><tbody><tr><td>1</td><td>INV-0001</td><td>craigslist</td><td>pending</td><td>pending_sale</td><td>Solid wood media cabinet</td><td>5</td><td>$1,200.00</td><td>$0.00</td></tr><tr><td>2</td><td>INV-0003-A</td><td>craigslist</td><td>active</td><td>listed_active</td><td>Dining table from set</td><td>2</td><td>$900.00</td><td>$0.00</td></tr><tr><td>3</td><td>INV-0003-B</td><td>craigslist</td><td>active</td><td>listed_active</td><td>Six chairs from set</td><td>2</td><td>$700.00</td><td>$0.00</td></tr></tbody></table>
+</section>
+<script>
+new Chart(document.getElementById('trend'), {
+  type: 'line',
+  data: { labels: ["2026-01-01", "2026-05-01"], datasets: [
+    { label: 'Revenue', data: [200.0, 0.0], borderColor: '#2563eb', backgroundColor: '#2563eb22', tension: .25 },
+    { label: 'Gross margin', data: [-100.0, -125.0], borderColor: '#16a34a', backgroundColor: '#16a34a22', tension: .25 },
+    { label: 'Net cash effect', data: [-600.0, 0.0], borderColor: '#dc6803', backgroundColor: '#dc680322', tension: .25 }
+  ] },
+  options: { responsive: true, interaction: { mode: 'index', intersect: false }, plugins: { tooltip: { enabled: true } } }
+});
+</script>
+</body>
+</html>
