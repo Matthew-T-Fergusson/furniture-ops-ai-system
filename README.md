@@ -2,15 +2,17 @@
 
 [![CI Smoke](https://github.com/Matthew-T-Fergusson/furniture-ops-ai-system/actions/workflows/ci-smoke.yml/badge.svg)](https://github.com/Matthew-T-Fergusson/furniture-ops-ai-system/actions/workflows/ci-smoke.yml)
 
-**Repository short description:** A live AI-assisted operations system for a furniture resale business, built to convert spreadsheet-based tracking into structured, auditable, database-backed workflows.
+**Repository short description:** A live AI-assisted operating system for a furniture resale business, turning messy small-business workflows into structured, auditable, database-backed operations.
 
-This repository documents a live AI-assisted operations system for a furniture resale business.
+This repository is a public, sanitized proof point for a practical AI-enabled operations thesis: small businesses can use structured data, deterministic workflow automation, human-in-the-loop controls, and targeted AI to gain capabilities that historically required larger organizations.
+
+The live private system supports a furniture resale/restoration business with real operational mess: inventory, sourcing, pickups, deliveries, repairs, receipts, payments, listings, customer communication, partner coordination, cash-flow timing, and local-market pricing.
 
 The system began as spreadsheet-based tracking and was converted into a Postgres-backed operational database and workflow layer. It is currently used to support real business activity while being expanded into a fuller operating system for inventory, sourcing, purchases, sales, receipts, pickups, deliveries, listing history, cash flow, and reporting.
 
-Rather than using AI only for ad hoc tasks, this project uses an AI agent as an operational assistant working against a persistent database, documented workflows, and guardrails.
+The design principle is not “use AI everywhere.” Structured data lives in structured tables. Known rules become deterministic workflows and guardrails. AI is used where it creates leverage: messy intake, classification, summarization, extraction, drafting, exception handling, and decision support. Humans stay in the loop for ambiguity, external communication, financial decisions, legal/compliance risk, and operational judgment.
 
-The goal is to turn messy, high-context business operations into structured, auditable, AI-accessible workflows.
+The goal is to turn messy, high-context business operations into structured, auditable, AI-assisted workflows.
 
 ## Current Operating Status
 
