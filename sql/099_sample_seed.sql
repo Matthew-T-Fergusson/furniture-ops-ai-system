@@ -80,6 +80,61 @@ INSERT INTO listings (inventory_uid, inventory_group_id, platform, external_list
   ('INV-0003-A', 'GROUP-0003', 'craigslist', 'CL-SAMPLE-003A', 'https://example.invalid/listing/003a', 'Dining table from set', 'active', now() - interval '2 days', 900.00),
   ('INV-0003-B', 'GROUP-0003', 'craigslist', 'CL-SAMPLE-003B', 'https://example.invalid/listing/003b', 'Six chairs from set', 'active', now() - interval '2 days', 700.00);
 
+UPDATE listings
+SET status = 'active_verified',
+    status_verified_at = now() - interval '1 hour',
+    status_verified_by = 'synthetic_seed',
+    status_verification_method = 'programmatic_link_readback',
+    status_verification_url = listing_url,
+    platform_account_ref = 'synthetic-craigslist-account',
+    status_reason = 'Synthetic public seed verified by example listing URL readback.',
+    status_context = jsonb_build_object('synthetic', true, 'verification_source', 'example.invalid')
+WHERE external_listing_id = 'CL-SAMPLE-003A';
+
+UPDATE listings
+SET status = 'ready_to_post',
+    platform_account_ref = 'synthetic-craigslist-account',
+    status_reason = 'Synthetic ready-to-post example: copy/media prepared but listing not live.',
+    status_context = jsonb_build_object('synthetic', true, 'blocking_next_step', 'post listing')
+WHERE external_listing_id = 'CL-SAMPLE-003B';
+
+INSERT INTO listing_status_history (
+  listing_id,
+  inventory_uid,
+  platform,
+  old_status,
+  new_status,
+  changed_at,
+  changed_by,
+  verification_method,
+  verification_url,
+  verified_at,
+  platform_account_ref,
+  reason,
+  notes,
+  context,
+  source_system
+)
+SELECT
+  listing_id,
+  inventory_uid,
+  platform,
+  'draft',
+  status,
+  coalesce(status_verified_at, now() - interval '30 minutes'),
+  'synthetic_seed',
+  status_verification_method,
+  status_verification_url,
+  status_verified_at,
+  platform_account_ref,
+  status_reason,
+  'Synthetic AWF-142 listing lifecycle status history example.',
+  status_context,
+  'synthetic_seed'
+FROM listings
+WHERE external_listing_id IN ('CL-SAMPLE-003A','CL-SAMPLE-003B')
+ON CONFLICT DO NOTHING;
+
 INSERT INTO listing_price_history (listing_id, price, changed_at, reason)
 SELECT listing_id, current_asking_price, listed_at, 'initial_price'
 FROM listings;

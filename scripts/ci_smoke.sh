@@ -84,6 +84,30 @@ if [[ "${status_aging_count}" == "0" ]]; then
   exit 1
 fi
 
+# Listing status regression: marketplace listing status should distinguish
+# active verified listings from ready-but-not-live rows and keep status history
+# for bottleneck/relist analysis.
+listing_status_history_count="$(run_psql -Atc "SELECT count(*) FROM listing_status_history WHERE source_system='synthetic_seed';")"
+if [[ "${listing_status_history_count}" == "0" ]]; then
+  echo "CI smoke failed: listing_status_history has no synthetic status events" >&2
+  exit 1
+fi
+active_verified_listing_count="$(run_psql -Atc "SELECT count(*) FROM listing_status_dashboard WHERE listing_status='active_verified' AND is_active_verified AND NOT needs_verification;")"
+if [[ "${active_verified_listing_count}" == "0" ]]; then
+  echo "CI smoke failed: listing_status_dashboard has no active verified listing" >&2
+  exit 1
+fi
+ready_not_live_count="$(run_psql -Atc "SELECT count(*) FROM listing_status_dashboard WHERE ready_but_not_live;")"
+if [[ "${ready_not_live_count}" == "0" ]]; then
+  echo "CI smoke failed: listing_status_dashboard has no ready-but-not-live row" >&2
+  exit 1
+fi
+platform_summary_count="$(run_psql -Atc "SELECT count(*) FROM listing_platform_status_summary WHERE active_verified_count > 0 AND ready_but_not_live_count > 0;")"
+if [[ "${platform_summary_count}" == "0" ]]; then
+  echo "CI smoke failed: listing_platform_status_summary missing expected coverage metrics" >&2
+  exit 1
+fi
+
 # CRM timeline regression: Morgan Buyer should have both message-level and
 # operational activity in one contact timeline. This proves the common CRM query
 # "show everything that happened with this person" does not require ad hoc

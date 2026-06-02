@@ -25,8 +25,34 @@
 - `contact_roles`
 - `listings`
 - `listing_price_history`
+- `listing_status_history`
 - `pickups_deliveries`
 - `contractor_ratings`
+
+## Listing status tracking
+
+Marketplace status is tracked at both levels:
+
+- Current state lives on `listings.status` plus verification fields such as `status_verified_at`, `status_verified_by`, `status_verification_method`, and `status_context`.
+- Status/audit history lives in `listing_status_history` so operators can see where posting stalled, why relisting was needed, and whether repeated failures suggest a platform/account pause.
+
+Use listing status, not inventory status, as the source of marketplace reality. If an inventory item says `listed_active` but no current platform listing is `active_verified`, the row should be verified by link/API/browser readback or by a human, and the mismatch should be corrected or flagged.
+
+Listing lifecycle statuses include:
+
+- Pre-posting: `needs_photos`, `needs_measurements`, `profile_ready`, `ready_to_post`, `drafted`
+- Posting/live: `posted_unverified`, `active_verified`, `active_needs_review`
+- Problem/cooldown: `failed_needs_correction`, `blocked_by_platform`, `cooldown_wait`, `flagged_or_restricted`
+- Normal lifecycle: `paused`, `expired`, `relist_needed`, `pending_sale`, `sold`, `delisted`, `cancelled`
+
+`active_verified` requires the listing to be viewable from the listing link, confirmed through API/browser readback, or human-verified when platform automation cannot verify it. Platform-specific quirks belong in `notes`, `status_reason`, and JSON context fields rather than in one-off generic statuses.
+
+Repeated platform/account failures should continue through isolated failures but pause for review after the configured threshold, currently 7 consecutive failures.
+
+Dashboard-oriented views:
+
+- `listing_status_dashboard`: per-listing fields for active verified coverage, stale verification, ready-but-not-live, failed/blocked, and inventory/listing mismatch flags.
+- `listing_platform_status_summary`: per-platform rollup of listing status coverage and problem counts.
 
 ## Statuses
 
