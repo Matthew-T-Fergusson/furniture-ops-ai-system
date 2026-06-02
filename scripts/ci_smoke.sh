@@ -84,6 +84,21 @@ if [[ "${status_aging_count}" == "0" ]]; then
   exit 1
 fi
 
+# CRM timeline regression: Morgan Buyer should have both message-level and
+# operational activity in one contact timeline. This proves the common CRM query
+# "show everything that happened with this person" does not require ad hoc
+# joins/unions by each agent or dashboard.
+morgan_timeline_message_count="$(run_psql -Atc "SELECT count(*) FROM contact_activity_timeline cat JOIN contacts c USING (contact_id) WHERE c.display_name='Morgan Buyer' AND cat.activity_type='conversation_message';")"
+if [[ "${morgan_timeline_message_count}" == "0" ]]; then
+  echo "CI smoke failed: Morgan Buyer contact timeline has no message activity" >&2
+  exit 1
+fi
+morgan_timeline_operational_count="$(run_psql -Atc "SELECT count(*) FROM contact_activity_timeline cat JOIN contacts c USING (contact_id) WHERE c.display_name='Morgan Buyer' AND cat.activity_type IN ('movement','cash_flow');")"
+if [[ "${morgan_timeline_operational_count}" == "0" ]]; then
+  echo "CI smoke failed: Morgan Buyer contact timeline has no operational activity" >&2
+  exit 1
+fi
+
 # Agent governance regression: the public repository must expose the audit-trail
 # pattern with synthetic rows and a recent-action view, proving that agent
 # actions are reviewable rather than invisible side effects.

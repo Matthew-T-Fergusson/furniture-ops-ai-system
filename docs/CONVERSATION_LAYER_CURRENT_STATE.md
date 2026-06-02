@@ -12,6 +12,7 @@ Updated: 2026-06-02
   - `lead_quality_reviewed_by`
   - `lead_quality_reviewed_at`
   - `lead_quality_notes`
+- `contact_activity_timeline` provides the CRM-style "show everything that happened with this person" view. It preserves every message row, includes conversation-thread/listing context, movement events, and explicitly contact-linked cash flows, with relationship strength and related IDs in JSON context.
 
 ## Operating decisions from 2026-06-02
 
@@ -50,6 +51,8 @@ The internal-tracker hostile/no-buy-signal test message was labeled `hostile_noi
 
 internal-tracker test conversations were archived with `needs_reply = false` and `priority = low` after validation. Test/archive handling should be standardized in the CRM-style disposition workflow.
 
+Raw CRM/audit views such as `contact_activity_timeline` should not hide archived/test activity by default. Dashboards and agent summaries can filter those rows, but the raw timeline remains useful when reviewing test behavior or debugging workflow regressions.
+
 ### Facebook Marketplace remains conservative/manual
 
 Facebook Marketplace is valuable for sales but strict enough that broad automation or capture is not worth risking account restrictions. Keep Facebook manual or human-triggered/minimal until platform-specific privacy/capture policy is approved.
@@ -69,6 +72,7 @@ Facebook Marketplace is valuable for sales but strict enough that broad automati
 - `sql/010_active_conversation_queue.sql`
 - `sql/011_queue_urgency_rules.sql`
 - `sql/012_lead_quality_review_fields.sql`
+- `sql/013_contact_activity_timeline.sql`
 - `scripts/backfill_gmail_craigslist_conversations.py`
 - `scripts/run_conversation_monitor.py`
 - `scripts/link_conversation_records.py`
