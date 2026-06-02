@@ -142,10 +142,11 @@ Run the same schema/guardrail gate locally and in GitHub Actions:
 make ci-smoke
 ```
 
-The smoke test resets the local public-reference database schema, loads `sql/001_schema.sql`,
-`sql/002_guardrail_views.sql`, `sql/003_sample_seed.sql`, and
-`sql/004_analytics_views.sql`, then fails if the synthetic seed produces any
-error-severity guardrails. It also runs
+The smoke test resets the local public-reference database schema, loads the
+ordered SQL files with the synthetic seed at `sql/099_sample_seed.sql`, then
+loads analytics views and fails if the seed produces any error-severity
+guardrails. The `099` seed placement also keeps simple numeric SQL loading
+from silently skipping feature-table seed rows. It also runs
 `tests/guardrail_regressions.sql`, which exercises representative guardrail cases
 using synthetic rows only:
 

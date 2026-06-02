@@ -39,15 +39,12 @@ run_psql -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
 
 run_sql_file "${ROOT}/sql/001_schema.sql"
 run_sql_file "${ROOT}/sql/002_guardrail_views.sql"
-# Load feature migrations before the synthetic seed so sample rows can exercise
-# marketplace syndication and conversation-layer tables.
 for sql_file in "${ROOT}"/sql/0*_*.sql; do
   case "$(basename "${sql_file}")" in
-    001_schema.sql|002_guardrail_views.sql|003_sample_seed.sql|004_analytics_views.sql) continue ;;
+    001_schema.sql|002_guardrail_views.sql|004_analytics_views.sql) continue ;;
   esac
   run_sql_file "${sql_file}"
 done
-run_sql_file "${ROOT}/sql/003_sample_seed.sql"
 run_sql_file "${ROOT}/sql/004_analytics_views.sql"
 
 printf '\nGuardrail summary after synthetic seed:\n'
