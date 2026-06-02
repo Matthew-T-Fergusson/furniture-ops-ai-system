@@ -93,6 +93,181 @@ INSERT INTO cash_flows (cf_record_id, inventory_uid, inventory_group_id, contact
 INSERT INTO pickups_deliveries (movement_type, inventory_uid, inventory_group_id, contact_id, counterparty_name, counterparty_contact, location_address, scheduled_start, scheduled_end, movement_status, assigned_to, deposit_received, notes) VALUES
   ('buyer_pickup', 'INV-0001', 'INV-0001', (SELECT contact_id FROM contacts WHERE display_name='Morgan Buyer'), 'Morgan Buyer', '555-0101', 'Synthetic address', now() + interval '2 days', now() + interval '2 days 2 hours', 'confirmed', 'Riley Mover', 200.00, 'Synthetic buyer pickup');
 
+DO $feature_seed$
+BEGIN
+  IF to_regclass('public.listing_scrape_runs') IS NOT NULL
+     AND to_regclass('public.conversation_threads') IS NOT NULL THEN
+    -- Synthetic marketplace syndication and conversation-layer rows. These are
+    -- public-safe examples that exercise the feature migrations without using real
+    -- marketplace messages, customer identities, raw captures, or private files.
+    INSERT INTO listing_scrape_runs (
+      scrape_run_id,
+      run_started_at,
+      run_finished_at,
+      status,
+      requested_limit,
+      delay_min_seconds,
+      delay_max_seconds,
+      download_images,
+      apply_changes,
+      processed_count,
+      success_count,
+      error_count,
+      captcha_count,
+      report_path,
+      notes
+    ) VALUES (
+      '11111111-1111-4111-8111-111111111111',
+      now() - interval '6 hours',
+      now() - interval '5 hours 45 minutes',
+      'completed',
+      3,
+      3.00,
+      7.00,
+      false,
+      false,
+      3,
+      2,
+      1,
+      0,
+      'local_data/sample_reports/listing_scrape_run.json',
+      'Synthetic scrape run for public smoke testing.'
+    )
+    ON CONFLICT (scrape_run_id) DO NOTHING;
+
+    INSERT INTO listing_events (listing_id, inventory_uid, event_type, event_at, new_status, new_price, source_system, actor, notes, scrape_run_id)
+    SELECT listing_id, inventory_uid, 'scraped', now() - interval '5 hours 50 minutes', status, current_asking_price, 'synthetic_seed', 'lex-public-reference', 'Synthetic listing scrape event.', '11111111-1111-4111-8111-111111111111'
+    FROM listings
+    WHERE external_listing_id = 'CL-SAMPLE-001';
+
+    INSERT INTO listing_content_snapshots (listing_id, inventory_uid, platform, external_listing_id, listing_url, scraped_at, title, description, price, location_text, content_hash, source_status, source_system, scrape_run_id)
+    SELECT listing_id, inventory_uid, platform, external_listing_id, listing_url, now() - interval '5 hours 50 minutes', title, 'Synthetic public-safe listing description.', current_asking_price, 'Example City', 'synthetic-content-hash-001', status, 'synthetic_seed', '11111111-1111-4111-8111-111111111111'
+    FROM listings
+    WHERE external_listing_id = 'CL-SAMPLE-001';
+
+    INSERT INTO listing_media_assets (inventory_uid, listing_id, platform, source_url, local_path, source_quality, media_type, sort_order, sha256, perceptual_hash, width_px, height_px, scrape_run_id, notes)
+    SELECT inventory_uid, listing_id, platform, 'https://example.invalid/media/001.jpg', 'local_data/sample_media/001.jpg', 'craigslist_low_res', 'image', 1, repeat('a',64), 'phash-synthetic-001', 800, 600, '11111111-1111-4111-8111-111111111111', 'Synthetic media row.'
+    FROM listings
+    WHERE external_listing_id = 'CL-SAMPLE-001';
+
+    INSERT INTO listing_price_quotes (inventory_uid, platform, market_region, base_price, delivery_adjustment, platform_fee_adjustment, markup_adjustment, recommended_price, target_margin_pct, approved_by, approved_at, used_for_listing_id, notes)
+    SELECT inventory_uid, 'craigslist', 'example-region', current_asking_price, 0, 0, 0, current_asking_price, 0.50, 'Alex Partner', now() - interval '4 hours', listing_id, 'Synthetic approved listing price quote.'
+    FROM listings
+    WHERE external_listing_id = 'CL-SAMPLE-001';
+
+    INSERT INTO listing_publication_queue (inventory_uid, platform, market_region, desired_action, status, priority, source_listing_id, price_quote_id, assigned_to, due_at, result_listing_id, notes)
+    SELECT l.inventory_uid, 'facebook_marketplace', 'example-region', 'create_listing', 'manual_required', 2, l.listing_id, q.quote_id, 'Casey Partner', now() + interval '1 day', NULL, 'Synthetic cross-post queue row requiring manual review.'
+    FROM listings l
+    JOIN listing_price_quotes q ON q.used_for_listing_id = l.listing_id
+    WHERE l.external_listing_id = 'CL-SAMPLE-001';
+
+    INSERT INTO listing_scrape_errors (scrape_run_id, listing_id, inventory_uid, platform, external_listing_id, listing_url, error_stage, error_type, http_status, error_message, response_excerpt, is_cooloff_signal)
+    SELECT '11111111-1111-4111-8111-111111111111', listing_id, inventory_uid, platform, external_listing_id, listing_url, 'fetch', 'not_found', 404, 'Synthetic listing unavailable during scrape.', 'Synthetic 404 excerpt.', false
+    FROM listings
+    WHERE external_listing_id = 'CL-SAMPLE-003B';
+
+    INSERT INTO conversation_threads (
+      platform,
+      source_account,
+      source_thread_id,
+      source_conversation_url,
+      contact_id,
+      inventory_uid,
+      inventory_group_id,
+      listing_id,
+      purpose,
+      stage,
+      priority,
+      assigned_to,
+      last_message_at,
+      last_inbound_at,
+      needs_reply,
+      next_action_at,
+      next_action_note,
+      thread_summary,
+      raw_thread_path,
+      source_system,
+      lead_quality_tag,
+      lead_quality_reviewed_by,
+      lead_quality_reviewed_at,
+      lead_quality_notes
+    )
+    SELECT
+      'craigslist_email',
+      'craigslist-account@example.invalid',
+      'sample-thread-001',
+      'https://example.invalid/conversations/sample-thread-001',
+      (SELECT contact_id FROM contacts WHERE display_name='Morgan Buyer'),
+      l.inventory_uid,
+      l.inventory_group_id,
+      l.listing_id,
+      'sale_inquiry',
+      'needs_reply',
+      'high',
+      'Alex Partner',
+      now() - interval '3 hours',
+      now() - interval '3 hours',
+      true,
+      now() - interval '1 hour',
+      'Synthetic buyer needs a reply about pickup availability.',
+      'Synthetic buyer asked whether the item is still available and requested pickup options.',
+      'local_data/furniture_conversations/raw/craigslist_email/sample-thread-001.json',
+      'synthetic_seed',
+      'actionable',
+      'Casey Partner',
+      now() - interval '2 hours',
+      'Synthetic high-intent lead.'
+    FROM listings l
+    WHERE l.external_listing_id = 'CL-SAMPLE-001'
+    ON CONFLICT DO NOTHING;
+
+    INSERT INTO conversation_messages (
+      conversation_thread_id,
+      platform,
+      source_account,
+      source_message_id,
+      source_thread_id,
+      message_at,
+      direction,
+      sender_contact_id,
+      recipient_contact_id,
+      sender_raw,
+      recipient_raw,
+      subject,
+      body_text,
+      body_preview,
+      message_url,
+      raw_message_path,
+      ingest_status,
+      source_system
+    )
+    SELECT
+      t.conversation_thread_id,
+      t.platform,
+      t.source_account,
+      'sample-message-001',
+      t.source_thread_id,
+      now() - interval '3 hours',
+      'inbound',
+      t.contact_id,
+      NULL,
+      'Morgan Buyer <buyer@example.invalid>',
+      'Craigslist Relay <craigslist-account@example.invalid>',
+      'Synthetic inquiry about media cabinet',
+      'Synthetic public-safe message: Is this still available, and could pickup work tomorrow?',
+      'Is this still available, and could pickup work tomorrow?',
+      'https://example.invalid/messages/sample-message-001',
+      'local_data/furniture_conversations/normalized/craigslist_email/sample-message-001.normalized.json',
+      'parsed',
+      'synthetic_seed'
+    FROM conversation_threads t
+    WHERE t.source_thread_id = 'sample-thread-001'
+    ON CONFLICT DO NOTHING;
+
+  END IF;
+END
+$feature_seed$;
+
 -- Synthetic agent action audit rows.
 -- These examples demonstrate the public-safe governance pattern: enough detail
 -- to replicate the action, capped/sanitized input excerpts, summarized

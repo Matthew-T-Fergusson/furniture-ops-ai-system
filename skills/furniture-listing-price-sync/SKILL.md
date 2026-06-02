@@ -1,13 +1,13 @@
 ---
 name: furniture-listing-price-sync
-description: Use when adding/updating marketplace/secondary marketplace/marketplace listings, item_id/cl_url, listing status, asking price, markdowns, delisting, or listing_price_history for furniture inventory.
+description: Use when adding/updating Craigslist/Facebook/marketplace listings, item_id/cl_url, listing status, asking price, markdowns, delisting, or listing_price_history for furniture inventory.
 ---
 
 # Furniture Listing + Price History Sync
 
 ## Listing identity
 
-Only set `inventory.item_id` / `inventory.cl_url` when actually listed. Never borrow marketplace IDs for acquired-unlisted inventory.
+Only set `inventory.item_id` / `inventory.cl_url` when actually listed. Never borrow Craigslist IDs for acquired-unlisted inventory.
 
 Use:
 
@@ -20,7 +20,7 @@ Use:
 ## Required fields
 
 - `inventory_uid`
-- platform: marketplace, secondary marketplace, etc.
+- platform: craigslist, facebook, etc.
 - external listing ID
 - listing URL
 - title
@@ -39,7 +39,7 @@ Every asking-price change gets a new `listing_price_history` row with:
 
 ## Listing expiry / relist workflow
 
-If an active listing expires or is found inactive when an item needs to go back for sale, automatically create a Jira ticket to relist/refresh the item and link/cross-reference the inventory/listing record. Do this even if the item is listed on other platforms; Primary Partner wants the inventory/listing status to surface a relist action when any marketplace listing needs attention.
+If an active listing expires or is found inactive when an item needs to go back for sale, automatically create a Jira ticket to relist/refresh the item and link/cross-reference the inventory/listing record. Do this even if the item is listed on other platforms; the operator wants the inventory/listing status to surface a relist action when any marketplace listing needs attention.
 
 Relist status convention: if the DB enum does not support a dedicated `relist_needed` inventory status yet, set/keep inventory on `hold` and record relist need in `listings.status`, `listings.notes`, inventory notes, and the Jira ticket. Do not use legacy `inventory.listing_status` for new workflow state.
 
@@ -47,11 +47,11 @@ If buyer backs out after deposit:
 
 - check whether listing is still active
 - if active: inventory can return to `listed_active`
-- if inactive/expired/delisted/unknown: set/keep item on `hold`, remind Primary Partner/Operations Partner to relist, and create a Jira relist ticket
+- if inactive/expired/delisted/unknown: set/keep item on `hold`, remind human operators to relist, and create a Jira relist ticket
 
-## marketplace pacing
+## Craigslist pacing
 
-For marketplace-related searches/syncs, use slow randomized pacing to reduce blocking/rate limits.
+For Craigslist-related searches/syncs, use slow randomized pacing to reduce blocking/rate limits.
 
 ## Validation
 
@@ -59,16 +59,33 @@ Check for duplicate real external listing IDs/URLs before writes. Placeholder ID
 
 Duplicate real listing IDs/URLs are blockers. Expired/inactive listing details are warnings/action triggers unless the requested update depends on them.
 
-## Agent action audit trail
+## internal-tracker action logging requirement
 
-For any AI-assisted workflow that previews, writes, blocks, or fails, create an `agent_action_log` entry or equivalent implementation note with:
+For future DB mutations from this workflow, write an `agent_action_log` row with:
 
-- `skill_name` matching this skill
-- capped/sanitized `chat_input_excerpt`
-- `operation_summary` with enough detail to replicate the action
-- summarized `guardrails_before` and `guardrails_after`
-- affected `entity_type` / `entity_id`
-- status: `preview_only`, `success`, `failed`, `blocked_by_guardrail`, or `needs_human_review`
-- `human_feedback` when Matt, a reviewer, or a collaborator corrects behavior
+- `skill_name='furniture-listing-price-sync'`
+- capped `chat_input_excerpt` when the source was chat
+- mutation summary by default; raw SQL only when needed
+- guardrail summaries before and after the write
+- entity link (`entity_type`, `entity_id`) and final status
 
-Public examples must stay synthetic. Do not include real private chat text, receipts, customer/contact data, credentials, addresses, phone numbers, or raw production SQL payloads in the published repository.
+Preferred deterministic writer for listing/price mutations:
+
+```bash
+python3 scripts/record_listing_price_action.py \
+  --inventory-uid <inventory_uid> \
+  --platform craigslist \
+  --external-listing-id <listing_id> \
+  --listing-url <url> \
+  --title <title> \
+  --price <amount> \
+  --chat-input-excerpt '<source request excerpt>' \
+  --dry-run   # preview first; use --apply to execute
+```
+
+If a duplicate real external listing ID/URL is detected, do not force the write; log `needs_review` and ask the operator.
+## Data Model Reference
+
+For field meanings and source-of-truth rules, use `docs/DATA_MODEL.md` and `docs/DATA_MODEL.md` before changing DB-backed furniture workflows.
+For canonical cost terms, use `docs/TAXONOMY.md` (`purchase_cost`, `labor_cost`, `total_acquisition_cost`, `allocated_cost_if_split`) instead of exposing legacy DB names unless writing SQL.
+

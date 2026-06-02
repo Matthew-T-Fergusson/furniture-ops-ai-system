@@ -23,3 +23,15 @@ backups/
 *.dump
 *.sql.gz
 restore_tmp/
+
+# OpenClaw/private workspace files must never be committed to this public repo.
+USER.md
+IDENTITY.md
+SOUL.md
+HEARTBEAT.md
+AGENTS.md
+TOOLS.md
+.openclaw/
+
+# Private publishing notes live only in the local working tree.
+docs/internal/

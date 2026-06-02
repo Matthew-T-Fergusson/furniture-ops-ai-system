@@ -130,5 +130,26 @@ BEGIN
 END;
 $$;
 
+
+-- 9) Conversation queue regression: synthetic conversation-layer rows should
+-- surface in the active queue with human-reviewed lead-quality fields. This
+-- protects the public smoke test from silently loading the conversation schema
+-- while failing to expose the operator review workflow.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM active_conversation_queue
+    WHERE platform = 'craigslist_email'
+      AND source_thread_id = 'sample-thread-001'
+      AND needs_reply IS TRUE
+      AND lead_quality_tag = 'actionable'
+      AND latest_body_preview LIKE 'Is this still available%'
+  ) THEN
+    RAISE EXCEPTION 'Expected synthetic conversation queue row with lead-quality fields was not found';
+  END IF;
+END;
+$$;
+
 ROLLBACK;
 \echo 'guardrail_regressions: ok'

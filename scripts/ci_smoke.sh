@@ -8,14 +8,21 @@ POSTGRES_DB="${POSTGRES_DB:-furniture_ops_poc}"
 if [[ -n "${DATABASE_URL:-}" ]]; then
   PSQL=(psql "${DATABASE_URL}")
 else
-  docker compose -f "${ROOT}/docker-compose.yml" up -d postgres >/dev/null
-  for _ in {1..30}; do
-    if docker compose -f "${ROOT}/docker-compose.yml" exec -T postgres pg_isready -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" >/dev/null 2>&1; then
-      break
+  CI_CONTAINER="${FURNITURE_DB_DOCKER_CONTAINER:-furniture-ops-ci-smoke-$RANDOM}"
+  export FURNITURE_DB_DOCKER_CONTAINER="${CI_CONTAINER}"
+  docker rm -f "${CI_CONTAINER}" >/dev/null 2>&1 || true
+  docker run -d     --name "${CI_CONTAINER}"     -e POSTGRES_DB="${POSTGRES_DB}"     -e POSTGRES_USER="${POSTGRES_USER}"     -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-change_me}"     postgres:17 >/dev/null
+  trap 'docker rm -f "${CI_CONTAINER}" >/dev/null 2>&1 || true' EXIT
+  for _ in {1..60}; do
+    if docker exec "${CI_CONTAINER}" psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -Atc "SELECT 1" >/dev/null 2>&1; then
+      sleep 2
+      if docker exec "${CI_CONTAINER}" psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -Atc "SELECT 1" >/dev/null 2>&1; then
+        break
+      fi
     fi
     sleep 1
   done
-  PSQL=(docker compose -f "${ROOT}/docker-compose.yml" exec -T postgres psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}")
+  PSQL=(docker exec -i "${CI_CONTAINER}" psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}")
 fi
 
 run_psql() {
@@ -32,6 +39,14 @@ run_psql -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
 
 run_sql_file "${ROOT}/sql/001_schema.sql"
 run_sql_file "${ROOT}/sql/002_guardrail_views.sql"
+# Load feature migrations before the synthetic seed so sample rows can exercise
+# marketplace syndication and conversation-layer tables.
+for sql_file in "${ROOT}"/sql/0*_*.sql; do
+  case "$(basename "${sql_file}")" in
+    001_schema.sql|002_guardrail_views.sql|003_sample_seed.sql|004_analytics_views.sql) continue ;;
+  esac
+  run_sql_file "${sql_file}"
+done
 run_sql_file "${ROOT}/sql/003_sample_seed.sql"
 run_sql_file "${ROOT}/sql/004_analytics_views.sql"
 
