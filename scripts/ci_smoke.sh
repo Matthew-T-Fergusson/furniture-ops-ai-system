@@ -99,6 +99,20 @@ if [[ "${morgan_timeline_operational_count}" == "0" ]]; then
   exit 1
 fi
 
+# Marketplace response SLA regression: synthetic Craigslist email activity should
+# produce non-empty first-response metrics from the Morgan Buyer inbound/outbound
+# message pair. This measures our responsiveness, not item demand.
+sla_platform_count="$(run_psql -Atc "SELECT count(*) FROM response_sla_metrics WHERE platform='craigslist_email' AND threads_with_inbound > 0 AND threads_responded > 0 AND median_first_response_hours IS NOT NULL AND p90_first_response_hours IS NOT NULL;")"
+if [[ "${sla_platform_count}" == "0" ]]; then
+  echo "CI smoke failed: response_sla_metrics missing expected Craigslist email response metrics" >&2
+  exit 1
+fi
+sla_pair_count="$(run_psql -Atc "SELECT count(*) FROM response_sla_thread_metrics WHERE platform='craigslist_email' AND inbound_message_count > 0 AND responded_inbound_message_count > 0 AND first_response_hours IS NOT NULL;")"
+if [[ "${sla_pair_count}" == "0" ]]; then
+  echo "CI smoke failed: response_sla_thread_metrics missing expected inbound/outbound pair metrics" >&2
+  exit 1
+fi
+
 # Agent governance regression: the public repository must expose the audit-trail
 # pattern with synthetic rows and a recent-action view, proving that agent
 # actions are reviewable rather than invisible side effects.

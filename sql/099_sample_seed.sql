@@ -260,6 +260,143 @@ FROM conversation_threads t
 WHERE t.source_thread_id = 'sample-thread-001'
 ON CONFLICT DO NOTHING;
 
+INSERT INTO conversation_threads (
+  platform,
+  source_account,
+  source_thread_id,
+  source_conversation_url,
+  contact_id,
+  inventory_uid,
+  inventory_group_id,
+  listing_id,
+  purpose,
+  stage,
+  priority,
+  assigned_to,
+  last_message_at,
+  last_inbound_at,
+  last_outbound_at,
+  needs_reply,
+  thread_summary,
+  source_system,
+  lead_quality_tag,
+  lead_quality_reviewed_by,
+  lead_quality_reviewed_at,
+  lead_quality_notes
+)
+SELECT
+  'craigslist_email',
+  'craigslist-account@example.invalid',
+  'sample-thread-sla-001',
+  'https://example.invalid/conversations/sample-thread-sla-001',
+  (SELECT contact_id FROM contacts WHERE display_name='Morgan Buyer'),
+  l.inventory_uid,
+  l.inventory_group_id,
+  l.listing_id,
+  'sale_inquiry',
+  'waiting_on_other_party',
+  'normal',
+  NULL,
+  now() - interval '1 hour',
+  now() - interval '3 hours',
+  now() - interval '1 hour',
+  false,
+  'Synthetic responded marketplace conversation used for SLA metrics.',
+  'synthetic_seed',
+  'actionable',
+  'Casey Partner',
+  now() - interval '1 hour',
+  'Synthetic SLA metric example.'
+FROM listings l
+WHERE l.external_listing_id = 'CL-SAMPLE-001'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO conversation_messages (
+  conversation_thread_id,
+  platform,
+  source_account,
+  source_message_id,
+  source_thread_id,
+  message_at,
+  direction,
+  sender_contact_id,
+  recipient_contact_id,
+  sender_raw,
+  recipient_raw,
+  subject,
+  body_text,
+  body_preview,
+  message_url,
+  raw_message_path,
+  ingest_status,
+  source_system
+)
+SELECT
+  t.conversation_thread_id,
+  t.platform,
+  t.source_account,
+  'sample-message-sla-001',
+  t.source_thread_id,
+  now() - interval '3 hours',
+  'inbound',
+  t.contact_id,
+  NULL,
+  'Morgan Buyer <buyer@example.invalid>',
+  'Craigslist Relay <craigslist-account@example.invalid>',
+  'Synthetic SLA inquiry about media cabinet',
+  'Synthetic public-safe message: Could I pick this up tomorrow?',
+  'Could I pick this up tomorrow?',
+  'https://example.invalid/messages/sample-message-sla-001',
+  'local_data/furniture_conversations/normalized/craigslist_email/sample-message-sla-001.normalized.json',
+  'parsed',
+  'synthetic_seed'
+FROM conversation_threads t
+WHERE t.source_thread_id = 'sample-thread-sla-001'
+ON CONFLICT DO NOTHING;
+
+INSERT INTO conversation_messages (
+  conversation_thread_id,
+  platform,
+  source_account,
+  source_message_id,
+  source_thread_id,
+  message_at,
+  direction,
+  sender_contact_id,
+  recipient_contact_id,
+  sender_raw,
+  recipient_raw,
+  subject,
+  body_text,
+  body_preview,
+  message_url,
+  raw_message_path,
+  ingest_status,
+  source_system
+)
+SELECT
+  t.conversation_thread_id,
+  t.platform,
+  t.source_account,
+  'sample-message-sla-002',
+  t.source_thread_id,
+  now() - interval '1 hour',
+  'outbound',
+  NULL,
+  t.contact_id,
+  'Seller <seller@example.invalid>',
+  'Morgan Buyer <buyer@example.invalid>',
+  'Re: Synthetic SLA inquiry about media cabinet',
+  'Synthetic public-safe reply: Yes, tomorrow pickup can work after 2 PM.',
+  'Yes, tomorrow pickup can work after 2 PM.',
+  'https://example.invalid/messages/sample-message-sla-002',
+  'local_data/furniture_conversations/normalized/craigslist_email/sample-message-sla-002.normalized.json',
+  'parsed',
+  'synthetic_seed'
+FROM conversation_threads t
+WHERE t.source_thread_id = 'sample-thread-sla-001'
+ON CONFLICT DO NOTHING;
+
 -- Synthetic agent action audit rows.
 -- These examples demonstrate the public-safe governance pattern: enough detail
 -- to replicate the action, capped/sanitized input excerpts, summarized
