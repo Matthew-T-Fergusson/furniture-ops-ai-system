@@ -83,6 +83,27 @@ WITH latest_message AS (
 SELECT coalesce(jsonb_pretty(jsonb_agg(to_jsonb(updated) ORDER BY conversation_thread_id)), '[]'::text::jsonb::text)
 FROM updated;
 
+INSERT INTO public.agent_action_log (
+  skill_name,
+  agent_identifier,
+  prompt_version,
+  chat_input_excerpt,
+  operation_summary,
+  entity_type,
+  entity_id,
+  status
+)
+VALUES (
+  'furniture-conversation-monitor-triage',
+  'Lex',
+  'apply_conversation_workflow_rules.py',
+  'Automated CRM workflow-rule pass over conversation_threads.',
+  'Applied deterministic conversation workflow rules to needs_reply and next_action_note. Preview mode rolls this audit row back with the data changes.',
+  'conversation_threads',
+  'bulk',
+  'success'
+);
+
 COMMIT;
 """
 

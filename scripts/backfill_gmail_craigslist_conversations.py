@@ -170,6 +170,26 @@ DO UPDATE SET
   message_url = EXCLUDED.message_url,
   raw_message_path = EXCLUDED.raw_message_path,
   ingest_status = EXCLUDED.ingest_status;
+
+INSERT INTO public.agent_action_log (
+  skill_name,
+  agent_identifier,
+  prompt_version,
+  chat_input_excerpt,
+  operation_summary,
+  entity_type,
+  entity_id,
+  status
+)
+SELECT
+  'furniture-platform-message-ingestion-framework',
+  'Lex',
+  'backfill_gmail_craigslist_conversations.py',
+  'Backfilled one Gmail/Craigslist conversation message into the conversation layer.',
+  'Upserted conversation_threads/conversation_messages from normalized Gmail/Craigslist payload with source provenance.',
+  'conversation_messages',
+  {q(m['source_message_id'])},
+  'success';
 COMMIT;
 """
     require_ok(run(psql_command() + ["-v", "ON_ERROR_STOP=1", "-X", "-q"], input_text=sql), f"upsert {m['source_message_id']}")

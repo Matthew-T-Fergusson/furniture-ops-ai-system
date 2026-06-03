@@ -1,4 +1,4 @@
-.PHONY: up down psql guardrails ci-smoke
+.PHONY: up down psql guardrails python-governance ci-smoke
 up:
 	docker compose up -d
 
@@ -11,5 +11,8 @@ psql:
 guardrails:
 	docker compose exec postgres psql -U $${POSTGRES_USER:-furniture} -d $${POSTGRES_DB:-furniture_ops_poc} -c "select * from furniture_db_guardrail_summary;"
 
-ci-smoke:
+python-governance:
+	./scripts/validate_python_governance.py
+
+ci-smoke: python-governance
 	./scripts/ci_smoke.sh

@@ -326,6 +326,29 @@ INSERT INTO tmp_awf161_updates(action, conversation_thread_id, entity, entity_id
 SELECT 'linked_listing', lm.conversation_thread_id, 'listing', lm.listing_id::text, 'Listing match: ' || lm.match_type
 FROM tmp_listing_match lm;
 
+INSERT INTO public.agent_action_log (
+  skill_name,
+  agent_identifier,
+  prompt_version,
+  chat_input_excerpt,
+  operation_summary,
+  guardrails_after,
+  entity_type,
+  entity_id,
+  status
+)
+SELECT
+  'furniture-contact-maintenance',
+  'Lex',
+  'link_conversation_records.py',
+  'Automated CRM matching/linking pass for conversation contacts, roles, listings, and inventory.',
+  'Linked/created provisional contacts, contact roles, and strong listing/inventory matches from conversation evidence.',
+  coalesce(jsonb_agg(to_jsonb(tmp_awf161_updates) ORDER BY conversation_thread_id, action, entity), '[]'::jsonb),
+  'conversation_threads',
+  'bulk',
+  'success'
+FROM tmp_awf161_updates;
+
 SELECT coalesce(jsonb_pretty(jsonb_agg(to_jsonb(tmp_awf161_updates) ORDER BY conversation_thread_id, action, entity)), '[]'::jsonb::text)
 FROM tmp_awf161_updates;
 
