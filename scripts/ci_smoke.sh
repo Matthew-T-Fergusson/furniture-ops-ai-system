@@ -12,7 +12,12 @@ else
   CI_CONTAINER="${FURNITURE_DB_DOCKER_CONTAINER:-furniture-ops-ci-smoke-$RANDOM}"
   export FURNITURE_DB_DOCKER_CONTAINER="${CI_CONTAINER}"
   docker rm -f "${CI_CONTAINER}" >/dev/null 2>&1 || true
-  docker run -d     --name "${CI_CONTAINER}"     -e POSTGRES_DB="${POSTGRES_DB}"     -e POSTGRES_USER="${POSTGRES_USER}"     -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-change_me}"     postgres:17 >/dev/null
+  docker run -d \
+    --name "${CI_CONTAINER}" \
+    -e POSTGRES_DB="${POSTGRES_DB}" \
+    -e POSTGRES_USER="${POSTGRES_USER}" \
+    -e POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-change_me}" \
+    postgres:17 >/dev/null
   trap 'docker rm -f "${CI_CONTAINER}" >/dev/null 2>&1 || true' EXIT
   for _ in {1..60}; do
     if docker exec "${CI_CONTAINER}" psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -Atc "SELECT 1" >/dev/null 2>&1; then
@@ -26,168 +31,7 @@ else
   PSQL=(docker exec -i "${CI_CONTAINER}" psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}")
 fi
 
-run_psql() {
-  "${PSQL[@]}" -v ON_ERROR_STOP=1 "$@"
-}
-
-run_sql_file() {
-  local file="$1"
-  run_psql < "${file}"
-}
-
 # Make the smoke test repeatable against a reused local Docker volume.
-run_psql -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
+"${PSQL[@]}" -v ON_ERROR_STOP=1 -c "DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;"
 
-run_sql_file "${ROOT}/sql/001_schema.sql"
-run_sql_file "${ROOT}/sql/002_guardrail_views.sql"
-for sql_file in "${ROOT}"/sql/0*_*.sql; do
-  case "$(basename "${sql_file}")" in
-    001_schema.sql|002_guardrail_views.sql|004_analytics_views.sql) continue ;;
-  esac
-  run_sql_file "${sql_file}"
-done
-run_sql_file "${ROOT}/sql/004_analytics_views.sql"
-
-printf '\nGuardrail summary after synthetic seed:\n'
-run_psql -c "SELECT * FROM furniture_db_guardrail_summary;"
-
-error_count="$(run_psql -Atc "SELECT count(*) FROM furniture_db_guardrail_summary WHERE severity='error';")"
-if [[ "${error_count}" != "0" ]]; then
-  echo "CI smoke failed: synthetic seed produced ${error_count} error-severity guardrails" >&2
-  exit 1
-fi
-
-run_sql_file "${ROOT}/tests/guardrail_regressions.sql"
-run_sql_file "${ROOT}/tests/message_template_rendering.sql"
-run_sql_file "${ROOT}/tests/conversation_tags_merge_funnel.sql"
-
-# KPI regression: analytics_inventory_pipeline_mv is grouped, so the current
-# unsold dashboard card must sum item_count. Counting grouped rows undercounts
-# real items whenever multiple status/category groups exist.
-source_unsold_count="$(run_psql -Atc "SELECT count(*) FROM inventory WHERE coalesce(status,'') NOT IN ('sold_delivered','disposed');")"
-kpi_unsold_count="$(run_psql -Atc "SELECT current_unsold_inventory_count FROM analytics_operating_kpis_period_mv WHERE period_grain='month' ORDER BY period_start DESC LIMIT 1;")"
-if [[ "${source_unsold_count}" != "${kpi_unsold_count}" ]]; then
-  echo "CI smoke failed: KPI unsold count ${kpi_unsold_count} != source unsold count ${source_unsold_count}" >&2
-  exit 1
-fi
-
-# Routine disposed inventory is inventory leaving the business for zero revenue.
-# The KPI layer should expose that basis separately while including it in total
-# COGS, so operators can distinguish sold-item margin from write-offs.
-disposed_kpi_row_count="$(run_psql -Atc "SELECT count(*) FROM analytics_operating_kpis_period_mv WHERE disposed_item_count > 0 AND disposed_inventory_cogs > 0 AND cogs = sold_item_cogs + disposed_inventory_cogs;")"
-if [[ "${disposed_kpi_row_count}" == "0" ]]; then
-  echo "CI smoke failed: disposed inventory COGS is not separately exposed/included in KPI COGS" >&2
-  exit 1
-fi
-
-# The status-history layer should be populated from synthetic status events.
-status_aging_count="$(run_psql -Atc "SELECT count(*) FROM analytics_current_status_aging_mv;")"
-if [[ "${status_aging_count}" == "0" ]]; then
-  echo "CI smoke failed: status-history analytics produced zero rows" >&2
-  exit 1
-fi
-
-# Listing status regression: marketplace listing status should distinguish
-# active verified listings from ready-but-not-live rows and keep status history
-# for bottleneck/relist analysis.
-listing_status_history_count="$(run_psql -Atc "SELECT count(*) FROM listing_status_history WHERE source_system='synthetic_seed';")"
-if [[ "${listing_status_history_count}" == "0" ]]; then
-  echo "CI smoke failed: listing_status_history has no synthetic status events" >&2
-  exit 1
-fi
-active_verified_listing_count="$(run_psql -Atc "SELECT count(*) FROM listing_status_dashboard WHERE listing_status='active_verified' AND is_active_verified AND NOT needs_verification;")"
-if [[ "${active_verified_listing_count}" == "0" ]]; then
-  echo "CI smoke failed: listing_status_dashboard has no active verified listing" >&2
-  exit 1
-fi
-ready_not_live_count="$(run_psql -Atc "SELECT count(*) FROM listing_status_dashboard WHERE ready_but_not_live;")"
-if [[ "${ready_not_live_count}" == "0" ]]; then
-  echo "CI smoke failed: listing_status_dashboard has no ready-but-not-live row" >&2
-  exit 1
-fi
-platform_summary_count="$(run_psql -Atc "SELECT count(*) FROM listing_platform_status_summary WHERE active_verified_count > 0 AND ready_but_not_live_count > 0;")"
-if [[ "${platform_summary_count}" == "0" ]]; then
-  echo "CI smoke failed: listing_platform_status_summary missing expected coverage metrics" >&2
-  exit 1
-fi
-
-# CRM timeline regression: Morgan Buyer should have both message-level and
-# operational activity in one contact timeline. This proves the common CRM query
-# "show everything that happened with this person" does not require ad hoc
-# joins/unions by each agent or dashboard.
-morgan_timeline_message_count="$(run_psql -Atc "SELECT count(*) FROM contact_activity_timeline cat JOIN contacts c USING (contact_id) WHERE c.display_name='Morgan Buyer' AND cat.activity_type='conversation_message';")"
-if [[ "${morgan_timeline_message_count}" == "0" ]]; then
-  echo "CI smoke failed: Morgan Buyer contact timeline has no message activity" >&2
-  exit 1
-fi
-morgan_timeline_operational_count="$(run_psql -Atc "SELECT count(*) FROM contact_activity_timeline cat JOIN contacts c USING (contact_id) WHERE c.display_name='Morgan Buyer' AND cat.activity_type IN ('movement','cash_flow');")"
-if [[ "${morgan_timeline_operational_count}" == "0" ]]; then
-  echo "CI smoke failed: Morgan Buyer contact timeline has no operational activity" >&2
-  exit 1
-fi
-
-# Marketplace response SLA regression: synthetic Craigslist email activity should
-# produce non-empty first-response metrics from the Morgan Buyer inbound/outbound
-# message pair. This measures our responsiveness, not item demand.
-sla_platform_count="$(run_psql -Atc "SELECT count(*) FROM response_sla_metrics WHERE platform='craigslist_email' AND threads_with_inbound > 0 AND threads_responded > 0 AND median_first_response_hours IS NOT NULL AND p90_first_response_hours IS NOT NULL;")"
-if [[ "${sla_platform_count}" == "0" ]]; then
-  echo "CI smoke failed: response_sla_metrics missing expected Craigslist email response metrics" >&2
-  exit 1
-fi
-sla_pair_count="$(run_psql -Atc "SELECT count(*) FROM response_sla_thread_metrics WHERE platform='craigslist_email' AND inbound_message_count > 0 AND responded_inbound_message_count > 0 AND first_response_hours IS NOT NULL;")"
-if [[ "${sla_pair_count}" == "0" ]]; then
-  echo "CI smoke failed: response_sla_thread_metrics missing expected inbound/outbound pair metrics" >&2
-  exit 1
-fi
-
-# Agent governance regression: the public repository must expose the audit-trail
-# pattern with synthetic rows and a recent-action view, proving that agent
-# actions are reviewable rather than invisible side effects.
-action_log_count="$(run_psql -Atc "SELECT count(*) FROM agent_action_log_recent;")"
-if [[ "${action_log_count}" == "0" ]]; then
-  echo "CI smoke failed: agent_action_log_recent produced zero rows" >&2
-  exit 1
-fi
-blocked_action_count="$(run_psql -Atc "SELECT count(*) FROM agent_action_log_recent WHERE status='blocked_by_guardrail' AND guardrails_after ? 'anomalies';")"
-if [[ "${blocked_action_count}" == "0" ]]; then
-  echo "CI smoke failed: no blocked_by_guardrail action with guardrail anomaly summary" >&2
-  exit 1
-fi
-
-# Tax/category reporting regression: both expense and revenue/payment rows should
-# carry normalized tax/reporting categories, and the dashboard view should expose
-# deductible expense totals plus revenue category totals.
-tax_category_count="$(run_psql -Atc "SELECT count(*) FROM tax_categories;")"
-if (( tax_category_count < 10 )); then
-  echo "CI smoke failed: expected reusable tax category taxonomy, found ${tax_category_count} rows" >&2
-  exit 1
-fi
-cashflow_uncategorized_count="$(run_psql -Atc "SELECT count(*) FROM cash_flows WHERE tax_category_code IS NULL;")"
-if [[ "${cashflow_uncategorized_count}" != "0" ]]; then
-  echo "CI smoke failed: synthetic cash_flows include ${cashflow_uncategorized_count} uncategorized tax rows" >&2
-  exit 1
-fi
-tax_view_count="$(run_psql -Atc "SELECT count(*) FROM analytics_cash_flow_tax_category_period_mv;")"
-if [[ "${tax_view_count}" == "0" ]]; then
-  echo "CI smoke failed: tax category analytics view produced zero rows" >&2
-  exit 1
-fi
-
-# Dashboard script regression: the public dashboard generator/exporter should be
-# runnable from the synthetic analytics layer, not just documented as an idea.
-python3 -m py_compile "${ROOT}/scripts/generate_kpi_dashboard.py" "${ROOT}/scripts/export_dashboard_context.py"
-python3 "${ROOT}/scripts/export_dashboard_context.py" --output /tmp/furniture_ops_poc_dashboard_context.json >/dev/null
-python3 "${ROOT}/scripts/generate_kpi_dashboard.py" --output-dir /tmp/furniture_ops_poc_dashboard --as-of 20260527 >/dev/null
-test -s /tmp/furniture_ops_poc_dashboard/furniture_ops_dashboard_20260527.html
-
-# Warning-only review semantics: ambiguous tax categories should surface as
-# warnings, not blockers, because classification has gray areas.
-run_psql -c "INSERT INTO cash_flows (cf_record_id, txn_type, txn_date, vendor_or_description, amount, category, tax_category_code) VALUES ('CI-TAX-REVIEW', 'Expense', current_date - interval '45 days', 'Synthetic review expense', 12.34, 'Supplies', 'unknown_needs_review');" >/dev/null
-review_warning_count="$(run_psql -Atc "SELECT count(*) FROM furniture_db_guardrail_anomalies WHERE entity_type='cash_flow' AND entity_id='CI-TAX-REVIEW' AND anomaly_type='expense_missing_tax_category' AND severity='warning';")"
-if [[ "${review_warning_count}" != "1" ]]; then
-  echo "CI smoke failed: unknown tax category did not surface as a warning" >&2
-  exit 1
-fi
-run_psql -c "DELETE FROM cash_flows WHERE cf_record_id='CI-TAX-REVIEW';" >/dev/null
-
-echo "ci-smoke: ok"
+python3 "${ROOT}/scripts/db_cli.py" smoke

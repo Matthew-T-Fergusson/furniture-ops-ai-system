@@ -1,6 +1,6 @@
 # Analytics + KPI Layer
 
-This public portfolio version includes a synthetic dashboard-ready analytics layer in `sql/004_analytics_views.sql`.
+This public portfolio version includes a synthetic dashboard-ready analytics layer in `sql/098_analytics_views.sql`.
 
 ## Why materialized views?
 

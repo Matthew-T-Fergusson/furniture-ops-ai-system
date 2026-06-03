@@ -113,7 +113,7 @@ docker compose up -d
 make ci-smoke
 ```
 
-The SQL files in `sql/` initialize the schema, guardrail views, synthetic sample rows, and dashboard-ready analytics materialized views.
+The SQL files in `sql/` initialize the schema, guardrail views, synthetic sample rows, and dashboard-ready analytics materialized views. `scripts/db_cli.py` applies them through a `schema_migrations` ledger so checksum drift and pending migrations are visible.
 
 ## Dashboard Generation
 
@@ -144,13 +144,15 @@ Run the same schema/guardrail gate locally and in GitHub Actions:
 make ci-smoke
 ```
 
-The smoke test resets the local public-reference database schema, loads the
-ordered SQL files with the synthetic seed at `sql/099_sample_seed.sql`, then
-loads analytics views and fails if the seed produces any error-severity
-guardrails. The `099` seed placement also keeps simple numeric SQL loading
-from silently skipping feature-table seed rows. It also runs
-`tests/guardrail_regressions.sql`, which exercises representative guardrail cases
-using synthetic rows only:
+The smoke test resets the local public-reference database schema, runs
+`python-governance`, then uses `scripts/db_cli.py smoke` to apply all `sql/*.sql`
+files in lexical order through `public.schema_migrations`. The late-order
+analytics file (`sql/098_analytics_views.sql`) and seed file
+(`sql/099_sample_seed.sql`) avoid hidden loader exceptions and keep simple
+numeric SQL loading honest. The smoke gate fails on checksum drift, duplicate
+migration IDs, pending migration problems, or error-severity guardrails. It also
+runs `tests/guardrail_regressions.sql`, which exercises representative guardrail
+cases using synthetic rows only:
 
 - listing identity
 - pending sale deposit / reserved-until

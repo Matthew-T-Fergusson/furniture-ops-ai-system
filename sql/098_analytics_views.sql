@@ -1,4 +1,4 @@
--- 004_analytics_views.sql
+-- 098_analytics_views.sql
 --
 -- Synthetic analytics layer for the AI-assisted furniture operations system.
 --
