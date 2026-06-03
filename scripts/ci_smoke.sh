@@ -58,6 +58,7 @@ if [[ "${error_count}" != "0" ]]; then
 fi
 
 run_sql_file "${ROOT}/tests/guardrail_regressions.sql"
+run_sql_file "${ROOT}/tests/message_template_rendering.sql"
 
 # KPI regression: analytics_inventory_pipeline_mv is grouped, so the current
 # unsold dashboard card must sum item_count. Counting grouped rows undercounts
