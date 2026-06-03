@@ -102,6 +102,7 @@ Core documentation:
 - [`docs/TAXONOMY.md`](docs/TAXONOMY.md)
 - [`docs/ANALYTICS.md`](docs/ANALYTICS.md)
 - [`docs/BACKUP_RECOVERY.md`](docs/BACKUP_RECOVERY.md)
+- [`docs/PLATFORM_MESSAGE_CAPTURE_POLICY.md`](docs/PLATFORM_MESSAGE_CAPTURE_POLICY.md)
 - [`docs/PORTFOLIO_CASE_STUDY.md`](docs/PORTFOLIO_CASE_STUDY.md)
 
 ## Quick Start
@@ -132,6 +133,7 @@ Use `--analysis-file` to inject operator-written executive commentary. The gener
 - `scripts/generate_kpi_dashboard.py` renders a public-safe static HTML dashboard from the analytics views, with optional injected analysis.
 - `skills/furniture-ops-dashboard-report/SKILL.md` captures the dashboard-reporting workflow: code builds metrics/charts, while operator-authored analysis provides executive commentary, anomaly cues, and work-item prioritization.
 - `docs/BACKUP_RECOVERY.md` documents the secure restore model: GitHub for code/runbooks, encrypted backups offsite, and the decryption passphrase stored separately.
+- `docs/PLATFORM_MESSAGE_CAPTURE_POLICY.md` documents platform-specific message capture, privacy/minimization rules, contact-enrichment review, and the pre-source checklist for adding channels such as eBay.
 - `scripts/create_encrypted_backup.sh` and `scripts/upload_encrypted_backup_to_drive.sh` are public-safe reference scripts. They are heavily commented to show the restore logic without exposing private backup destinations or secrets.
 
 ## Tests and CI Smoke
