@@ -7,6 +7,7 @@ POSTGRES_DB="${POSTGRES_DB:-furniture_ops_poc}"
 
 if [[ -n "${DATABASE_URL:-}" ]]; then
   PSQL=(psql "${DATABASE_URL}")
+  export FURNITURE_DB_PSQL="psql ${DATABASE_URL}"
 else
   CI_CONTAINER="${FURNITURE_DB_DOCKER_CONTAINER:-furniture-ops-ci-smoke-$RANDOM}"
   export FURNITURE_DB_DOCKER_CONTAINER="${CI_CONTAINER}"
