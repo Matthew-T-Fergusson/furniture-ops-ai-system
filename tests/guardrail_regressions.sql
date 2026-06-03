@@ -151,5 +151,80 @@ BEGIN
 END;
 $$;
 
+-- 10) AWF-186 DNC regression: DNC blocks automatic/external outbound
+-- sending only. Draft/pre-send previews are still allowed by workflow policy,
+-- but a recorded/attempted outbound message to a DNC contact must trip an
+-- error-severity guardrail.
+DO $$
+DECLARE
+  dnc_contact_id bigint;
+  dnc_thread_id bigint;
+  dnc_message_id bigint;
+BEGIN
+  INSERT INTO contacts (
+    display_name,
+    contact_type,
+    do_not_contact,
+    dnc_reason,
+    dnc_set_at,
+    dnc_set_by,
+    dnc_channels
+  ) VALUES (
+    'Synthetic DNC Buyer',
+    'lead',
+    true,
+    'explicit_opt_out',
+    now(),
+    'regression-test',
+    ARRAY['craigslist_email']
+  ) RETURNING contact_id INTO dnc_contact_id;
+
+  INSERT INTO conversation_threads (
+    platform,
+    source_thread_id,
+    contact_id,
+    purpose,
+    stage,
+    needs_reply,
+    source_system
+  ) VALUES (
+    'craigslist_email',
+    'synthetic-dnc-thread-001',
+    dnc_contact_id,
+    'sale_inquiry',
+    'waiting_on_other_party',
+    false,
+    'guardrail_regression'
+  ) RETURNING conversation_thread_id INTO dnc_thread_id;
+
+  INSERT INTO conversation_messages (
+    conversation_thread_id,
+    platform,
+    message_at,
+    direction,
+    recipient_contact_id,
+    body_text,
+    body_preview,
+    source_system
+  ) VALUES (
+    dnc_thread_id,
+    'craigslist_email',
+    now(),
+    'outbound',
+    dnc_contact_id,
+    'Synthetic outbound message that should be blocked by DNC send guardrail.',
+    'Synthetic outbound message that should be blocked by DNC send guardrail.',
+    'guardrail_regression'
+  ) RETURNING conversation_message_id INTO dnc_message_id;
+
+  PERFORM assert_guardrail(
+    'conversation_message',
+    dnc_message_id::text,
+    'outbound_message_to_dnc_contact',
+    'error'
+  );
+END;
+$$;
+
 ROLLBACK;
 \echo 'guardrail_regressions: ok'

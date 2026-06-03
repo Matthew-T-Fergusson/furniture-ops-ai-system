@@ -19,6 +19,7 @@ Current policy:
 - Capture Craigslist chat together with the scheduled message-monitoring workflow when feasible, but keep it notification-gated: Gmail chat notification first, browser capture second.
 - If browser capture becomes too costly/flaky, reduce cadence rather than skipping chat when notifications indicate active messages.
 - Do not send replies automatically. Draft + preview + human operators approval first.
+- DNC / do-not-contact policy: DNC does **not** block capture, drafting, or preview generation, but it **does block automatic/external sending**. Before sending any Craigslist chat reply, check the linked contact; if `contacts.do_not_contact=true` and `dnc_channels` is NULL/empty or includes `craigslist_chat`, stop and surface the DNC block/reason instead of sending.
 
 ## Browser workflow
 
@@ -84,6 +85,13 @@ Run helpers after capture/upsert:
 ```bash
 python3 scripts/link_conversation_records.py --apply --readback
 python3 scripts/apply_conversation_workflow_rules.py --apply --readback
+```
+
+Check DNC before any non-preview chat send:
+
+```bash
+docker exec -i lex-postgres psql -U lex -d inspiring_works_llc -X -q -P pager=off -c \
+"SELECT c.contact_id, c.display_name, c.do_not_contact, c.dnc_reason, c.dnc_set_at, c.dnc_set_by, c.dnc_channels FROM conversation_threads t JOIN contacts c ON c.contact_id=t.contact_id WHERE t.conversation_thread_id=<id> AND c.do_not_contact IS TRUE AND (c.dnc_channels IS NULL OR cardinality(c.dnc_channels)=0 OR 'craigslist_chat'=ANY(c.dnc_channels));"
 ```
 
 ## References

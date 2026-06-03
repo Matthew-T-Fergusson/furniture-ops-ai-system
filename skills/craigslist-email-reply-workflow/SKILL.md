@@ -12,6 +12,7 @@ Use this skill to handle Craigslist **email relay** replies. Do not use it for C
 - Do not auto-send external replies.
 - Draft a reply and show a pre-send preview.
 - a human operator may approve/send shared furniture-business replies.
+- DNC / do-not-contact policy: DNC does **not** block drafting or preview generation, but it **does block automatic/external sending**. Before sending, check the linked contact; if `contacts.do_not_contact=true` and `dnc_channels` is NULL/empty or includes `craigslist_email`, stop and surface the DNC block/reason instead of sending.
 - Send replies in-thread whenever possible.
 - After sending, log/upsert the outbound message into the conversation layer.
 
@@ -35,7 +36,8 @@ Use this skill to handle Craigslist **email relay** replies. Do not use it for C
 4. **Dry-run when possible**
    - Use `gog gmail send --dry-run` for command validation if a send command is assembled.
 
-5. **Send only after explicit approval**
+5. **Send only after explicit approval and DNC check**
+   - Re-check DNC immediately before external send. DNC blocks sending, not drafting.
    - Use Gmail reply threading flags: `--reply-to-message-id` or `--thread-id`.
    - Prefer `--reply-all` only if the original recipients should remain included.
 
@@ -84,6 +86,7 @@ Approval needed: Reply “send” to send as-is, or tell me edits.
 
 ## Safety/quality rules
 
+- DNC/send guardrail: before any non-dry-run Gmail send, verify no linked recipient/contact is blocked by `contacts.do_not_contact=true` for `craigslist_email` or all channels. If blocked, do not send; report the DNC reason/source and ask a human operator if they want to update the contact record.
 - Never include the operator-personal context unless explicitly approved and relevant.
 - Do not invent listing details.
 - Do not negotiate final pricing without human operators approval unless a future policy allows it.
@@ -105,6 +108,13 @@ Read messages for a thread:
 ```bash
 docker exec -i lex-postgres psql -U lex -d inspiring_works_llc -X -q -P pager=off -c \
 "SELECT conversation_message_id, source_message_id, source_thread_id, message_at, direction, sender_raw, recipient_raw, subject, body_text, raw_message_path FROM conversation_messages WHERE conversation_thread_id=<id> ORDER BY message_at, conversation_message_id;"
+```
+
+Check DNC before non-dry-run send:
+
+```bash
+docker exec -i lex-postgres psql -U lex -d inspiring_works_llc -X -q -P pager=off -c \
+"SELECT c.contact_id, c.display_name, c.do_not_contact, c.dnc_reason, c.dnc_set_at, c.dnc_set_by, c.dnc_channels FROM conversation_threads t JOIN contacts c ON c.contact_id=t.contact_id WHERE t.conversation_thread_id=<id> AND c.do_not_contact IS TRUE AND (c.dnc_channels IS NULL OR cardinality(c.dnc_channels)=0 OR 'craigslist_email'=ANY(c.dnc_channels));"
 ```
 
 Run post-send helpers:
