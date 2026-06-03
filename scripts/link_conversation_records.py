@@ -232,6 +232,50 @@ SELECT 'created_role', rs.conversation_thread_id, 'contact_role', ir.contact_rol
 FROM inserted_roles ir
 JOIN role_source rs ON rs.contact_id = ir.contact_id AND rs.role = ir.role;
 
+-- Link the strongest matching contact_role back onto the thread. Earlier
+-- versions created role rows but could leave conversation_threads.contact_role_id
+-- null, which made CRM validation/readbacks ambiguous.
+WITH role_source AS (
+  SELECT
+    t.conversation_thread_id,
+    t.contact_id,
+    t.inventory_uid,
+    t.inventory_group_id,
+    CASE
+      WHEN t.purpose = 'sale_inquiry' THEN 'buyer'
+      WHEN t.purpose = 'sourcing_acquisition' THEN 'source'
+      WHEN t.purpose = 'vendor_coordination' THEN 'vendor'
+      WHEN t.purpose IN ('pickup_coordination','delivery_coordination','unknown') THEN 'marketplace_lead'
+      ELSE NULL
+    END AS expected_role
+  FROM public.conversation_threads t
+  WHERE t.contact_id IS NOT NULL
+), role_match AS (
+  SELECT DISTINCT ON (rs.conversation_thread_id)
+    rs.conversation_thread_id,
+    cr.contact_role_id,
+    cr.role
+  FROM role_source rs
+  JOIN public.contact_roles cr
+    ON cr.contact_id = rs.contact_id
+   AND cr.role = rs.expected_role
+   AND cr.inventory_uid IS NOT DISTINCT FROM rs.inventory_uid
+   AND cr.inventory_group_id IS NOT DISTINCT FROM rs.inventory_group_id
+  WHERE rs.expected_role IS NOT NULL
+  ORDER BY rs.conversation_thread_id, cr.contact_role_id
+), role_link AS (
+  UPDATE public.conversation_threads t
+  SET contact_role_id = rm.contact_role_id,
+      updated_at = now()
+  FROM role_match rm
+  WHERE t.conversation_thread_id = rm.conversation_thread_id
+    AND t.contact_role_id IS DISTINCT FROM rm.contact_role_id
+  RETURNING t.conversation_thread_id, rm.contact_role_id, rm.role
+)
+INSERT INTO tmp_awf161_updates(action, conversation_thread_id, entity, entity_id, detail)
+SELECT 'linked_contact_role', conversation_thread_id, 'contact_role', contact_role_id::text, 'Linked thread contact_role_id to role ' || role
+FROM role_link;
+
 -- Extract Craigslist/listing URLs and numeric external listing IDs from message text.
 CREATE TEMP TABLE tmp_listing_clues ON COMMIT DROP AS
 SELECT DISTINCT
@@ -299,11 +343,14 @@ SELECT
   coalesce(c.username_platform,'') || E'\t' ||
   coalesce(c.username,'') || E'\t' ||
   coalesce(c.platform_contact_id,'') || E'\t' ||
+  coalesce(t.contact_role_id::text,'') || E'\t' ||
+  coalesce(cr.role,'') || E'\t' ||
   coalesce(t.listing_id::text,'') || E'\t' ||
   coalesce(t.inventory_uid,'') || E'\t' ||
   coalesce(t.next_action_note,'')
 FROM public.conversation_threads t
 LEFT JOIN public.contacts c ON c.contact_id = t.contact_id
+LEFT JOIN public.contact_roles cr ON cr.contact_role_id = t.contact_role_id
 ORDER BY t.conversation_thread_id;
 """
 
@@ -338,7 +385,7 @@ def main() -> int:
     sql = SQL if args.apply else SQL.replace("COMMIT;", "ROLLBACK;")
     print((require_ok(run_sql(sql), "link conversation records") or "[]").strip())
     if args.readback:
-        print("\nconversation_thread_id\tplatform\tpurpose\tstage\tcontact_id\tcontact_name\tusername_platform\tusername\tplatform_contact_id\tlisting_id\tinventory_uid\tnext_action_note")
+        print("\nconversation_thread_id\tplatform\tpurpose\tstage\tcontact_id\tcontact_name\tusername_platform\tusername\tplatform_contact_id\tcontact_role_id\tcontact_role\tlisting_id\tinventory_uid\tnext_action_note")
         print(require_ok(run_sql(READBACK), "readback conversation links").strip())
     return 0
 
